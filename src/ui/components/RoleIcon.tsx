@@ -1,9 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { FactionId, RoleDef } from '@/domain'
-import {
-  compositeIconResolver,
-  roleIconCandidates,
-} from '@/adapters/icons'
+import { compositeIconResolver } from '@/adapters/icons'
 import { FACTION_COLOR } from '../lib/factionColor'
 
 interface RoleIconProps {
@@ -17,18 +14,16 @@ interface RoleIconProps {
 }
 
 /**
- * Renders local pack art when present, otherwise faction placeholder.
- * Tries webp/png/svg/jpg under public/icons/roles/.
+ * Renders role art with fallbacks:
+ * Script JSON `image` URL (on by default) → local pack → faction placeholder.
  */
 export function RoleIcon(props: RoleIconProps) {
   const id = props.role?.id ?? props.roleId ?? ''
   const team = props.role?.faction ?? props.faction ?? 'unknown'
-  const resolved = compositeIconResolver.resolve(id, team, props.role?.imageUrl)
-  const candidates = useMemo(() => {
-    if (!id) return [] as string[]
-    if (resolved.kind === 'url') return [resolved.value]
-    return roleIconCandidates(id)
-  }, [id, resolved.kind, resolved.value])
+  const candidates = useMemo(
+    () => compositeIconResolver.candidates(id, props.role?.imageUrl),
+    [id, props.role?.imageUrl],
+  )
 
   return (
     <RoleIconInner
@@ -68,6 +63,7 @@ function RoleIconInner({
         height={size}
         className={`rounded-full object-cover ${className}`}
         style={{ width: size, height: size, background: color }}
+        referrerPolicy="no-referrer"
         onError={() => setSrcIndex((i) => i + 1)}
       />
     )
