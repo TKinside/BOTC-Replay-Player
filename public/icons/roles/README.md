@@ -7,8 +7,9 @@
 
 1. **Script JSON `image` URL — 默认开启**（导入脚本里的远程图标会直接加载；失败则继续下一步）
 2. 本目录本地资源 `public/icons/roles/{id}.*`
-3. 阵营色占位圆
+3. 无图时：同一羊皮纸圆盘底（`public/icons/role-disc-bg.webp`）+ 文字占位
 
+圆盘底图用于所有角色 token（圆桌 / RoleChip / 列表），**不要**再套阵营色底。  
 可用 `CompositeIconResolver({ allowRemoteImages: false })` 关掉远程图（一般不需要）。
 
 ## 怎么放本地包
