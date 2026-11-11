@@ -1,0 +1,5 @@
+export type { MatchRepository } from './MatchRepository'
+export type { ScriptSource } from './ScriptSource'
+export type { RoleCatalog } from './RoleCatalog'
+export type { IconResolver, IconResolveResult } from './IconResolver'
+export type { LongImageExporter } from './LongImageExporter'
