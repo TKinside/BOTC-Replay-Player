@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
 import type { FactionId, RoleDef } from '@/domain'
 import { compositeIconResolver } from '@/adapters/icons'
-import { FACTION_COLOR } from '../lib/factionColor'
+
+/** Neutral placeholder when no image loads — not faction-tinted. */
+const PLACEHOLDER_BG = '#64748b'
 
 interface RoleIconProps {
   role?: Pick<RoleDef, 'id' | 'name' | 'faction' | 'imageUrl'> | null
@@ -15,7 +17,8 @@ interface RoleIconProps {
 
 /**
  * Renders role art with fallbacks:
- * Script JSON `image` URL (on by default) → local pack → faction placeholder.
+ * Script JSON `image` URL (on by default) → local pack → neutral placeholder.
+ * Image-backed icons use a plain white circular background (no faction tint).
  */
 export function RoleIcon(props: RoleIconProps) {
   const id = props.role?.id ?? props.roleId ?? ''
@@ -30,7 +33,6 @@ export function RoleIcon(props: RoleIconProps) {
       key={candidates.join('|') || `ph-${id}-${team}`}
       {...props}
       candidates={candidates}
-      team={team}
       id={id}
     />
   )
@@ -42,14 +44,11 @@ function RoleIconInner({
   className = '',
   seatLabel,
   candidates,
-  team,
   id,
 }: RoleIconProps & {
   candidates: string[]
-  team: FactionId
   id: string
 }) {
-  const color = FACTION_COLOR[team]
   const [srcIndex, setSrcIndex] = useState(0)
   const failed = candidates.length === 0 || srcIndex >= candidates.length
   const src = failed ? undefined : candidates[srcIndex]
@@ -61,8 +60,8 @@ function RoleIconInner({
         alt={role?.name ?? id}
         width={size}
         height={size}
-        className={`rounded-full object-cover ${className}`}
-        style={{ width: size, height: size, background: color }}
+        className={`rounded-full object-contain ${className}`}
+        style={{ width: size, height: size, background: '#ffffff' }}
         referrerPolicy="no-referrer"
         onError={() => setSrcIndex((i) => i + 1)}
       />
@@ -72,7 +71,7 @@ function RoleIconInner({
   return (
     <span
       className={`inline-flex items-center justify-center rounded-full text-[10px] font-semibold text-white ${className}`}
-      style={{ width: size, height: size, background: color }}
+      style={{ width: size, height: size, background: PLACEHOLDER_BG }}
       aria-label={role?.name ?? (id || '未指派')}
     >
       {seatLabel ?? role?.name?.slice(0, 1) ?? '?'}
