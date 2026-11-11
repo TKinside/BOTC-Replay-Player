@@ -30,7 +30,7 @@ export function PlayerEditor({
       <label className="block text-sm">
         <span className="mb-1 block text-[var(--ink-muted)]">昵称</span>
         <input
-          className="w-full rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-3 py-2"
+          className="min-h-11 w-full rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-3 py-2 text-base sm:text-sm"
           value={player.name}
           onChange={(e) => onRename(player.id, e.target.value)}
         />
@@ -41,13 +41,13 @@ export function PlayerEditor({
         <div className="mb-2">
           <button
             type="button"
-            className="text-xs text-[var(--accent-soft)]"
+            className="min-h-10 text-sm text-[var(--accent-soft)] touch-manipulation"
             onClick={() => onAssignRole(player.id, undefined)}
           >
             清除角色
           </button>
         </div>
-        <div className="flex max-h-48 flex-col gap-3 overflow-y-auto pr-1">
+        <div className="flex max-h-56 flex-col gap-3 overflow-y-auto overscroll-contain pr-1">
           {roles.map(([faction, list]) => (
             <div key={faction}>
               <p className="mb-1 text-xs text-[var(--ink-muted)]">
@@ -59,7 +59,7 @@ export function PlayerEditor({
                     key={role.id}
                     type="button"
                     onClick={() => onAssignRole(player.id, role.id)}
-                    className={`rounded-md border px-0.5 py-0.5 ${
+                    className={`min-h-10 rounded-md border px-0.5 py-0.5 touch-manipulation ${
                       player.roleId === role.id
                         ? 'border-[var(--accent-soft)]'
                         : 'border-transparent'
@@ -76,7 +76,7 @@ export function PlayerEditor({
 
       <button
         type="button"
-        className="self-start text-sm text-red-300"
+        className="min-h-11 self-start px-1 text-sm text-red-300 touch-manipulation"
         onClick={() => onRemove(player.id)}
       >
         移除此座位

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>《血染钟楼复盘器》</title>
+    <script>
+      // GitHub Pages SPA fallback: redirect into index with path preserved.
+      sessionStorage.setItem('botc:ghpages-redirect', location.pathname + location.search + location.hash)
+      var segments = location.pathname.split('/').filter(Boolean)
+      // project site: /BOTC-Replay-Player/... → one level up to index
+      var base = segments.length && segments[0] === 'BOTC-Replay-Player'
+        ? '/BOTC-Replay-Player/'
+        : '/'
+      location.replace(base)
+    </script>
+  </head>
+  <body></body>
+</html>

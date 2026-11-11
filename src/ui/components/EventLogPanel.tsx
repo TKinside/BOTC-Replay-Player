@@ -44,7 +44,7 @@ export function EventLogPanel({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
-        <div>
+        <div className="min-w-0">
           <h3 className="text-base font-medium">事件日志</h3>
           <p className="text-xs text-[var(--ink-muted)]">
             当前：{currentPhase?.label ?? '—'}
@@ -53,7 +53,7 @@ export function EventLogPanel({
         <button
           type="button"
           onClick={onAdvancePhase}
-          className="rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-1.5 text-sm"
+          className="min-h-11 shrink-0 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-2 text-sm touch-manipulation"
         >
           下一阶段
         </button>
@@ -61,7 +61,7 @@ export function EventLogPanel({
 
       <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-panel)] p-3">
         <p className="mb-2 text-sm font-medium">记一条</p>
-        <div className="mb-2 flex flex-wrap gap-1.5">
+        <div className="-mx-1 mb-3 flex gap-1.5 overflow-x-auto px-1 pb-1">
           {QUICK_TYPES.map((id) => {
             const def = EventTypeRegistry.get(id)
             return (
@@ -69,7 +69,7 @@ export function EventLogPanel({
                 key={id}
                 type="button"
                 onClick={() => setTypeId(id)}
-                className={`rounded-md px-2 py-1 text-xs ${
+                className={`min-h-10 shrink-0 rounded-md px-3 py-2 text-sm touch-manipulation ${
                   typeId === id
                     ? 'bg-[var(--accent)] text-white'
                     : 'bg-[var(--bg-elevated)] text-[var(--ink-muted)]'
@@ -81,11 +81,11 @@ export function EventLogPanel({
           })}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <label className="text-xs text-[var(--ink-muted)]">
             行动者
             <select
-              className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-2 py-2 text-sm text-[var(--ink)]"
+              className="mt-1 min-h-11 w-full rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-2 py-2 text-base text-[var(--ink)] sm:text-sm"
               value={actorId}
               onChange={(e) => setActorId(e.target.value)}
             >
@@ -100,7 +100,7 @@ export function EventLogPanel({
           <label className="text-xs text-[var(--ink-muted)]">
             目标
             <select
-              className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-2 py-2 text-sm text-[var(--ink)]"
+              className="mt-1 min-h-11 w-full rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-2 py-2 text-base text-[var(--ink)] sm:text-sm"
               value={targetId}
               onChange={(e) => setTargetId(e.target.value)}
             >
@@ -117,7 +117,7 @@ export function EventLogPanel({
         <label className="mt-2 block text-xs text-[var(--ink-muted)]">
           自定义文本（可选）
           <textarea
-            className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-2 py-2 text-sm text-[var(--ink)]"
+            className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-2 py-2 text-base text-[var(--ink)] sm:text-sm"
             rows={2}
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -127,7 +127,7 @@ export function EventLogPanel({
 
         <button
           type="button"
-          className="mt-2 w-full rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white"
+          className="mt-3 min-h-11 w-full rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white touch-manipulation"
           onClick={() => {
             onRecordEvent({
               typeId,
@@ -157,7 +157,7 @@ export function EventLogPanel({
                   {events.map((event) => (
                     <li
                       key={event.id}
-                      className="rounded-md bg-[var(--bg-elevated)] px-3 py-2 text-sm"
+                      className="rounded-md bg-[var(--bg-elevated)] px-3 py-2.5 text-sm leading-snug"
                     >
                       <span className="mr-2 text-xs text-[var(--accent-soft)]">
                         {EventTypeRegistry.get(event.typeId)?.label ??
