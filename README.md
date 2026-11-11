@@ -32,7 +32,7 @@ pnpm preview
 
 ## 角色图标
 
-默认阵营色占位。把官方/自备图丢进 [`public/icons/roles/`](public/icons/roles/)（文件名 = role id，如 `washerwoman.webp`），构建后自动优先使用。说明见该目录 README。**请先确认美术许可再分发。**
+优先使用 Script JSON 的 `image` URL（**默认开启**）；失败则试 [`public/icons/roles/`](public/icons/roles/) 本地包（文件名 = role id，如 `washerwoman.webp`），再回退阵营色占位。说明见该目录 README。**请先确认美术许可再分发官方资源包。**
 
 ## 目录结构
 

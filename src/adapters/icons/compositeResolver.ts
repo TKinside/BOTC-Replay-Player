@@ -1,51 +1,71 @@
 import type { FactionId } from '@/domain'
 import type { IconResolver, IconResolveResult } from '@/ports'
 import { PlaceholderIconResolver } from './placeholderResolver'
-import { roleIconAssetUrl } from './paths'
+import { roleIconAssetUrl, roleIconCandidates } from './paths'
 
 export interface CompositeIconOptions {
-  /** Prefer Script JSON `image` URLs (off by default — tracking/CORS). */
+  /**
+   * Prefer Script JSON `image` URLs.
+   * Default: **true** (product UX — imported script icons should show).
+   * Set false to force local pack / placeholder only.
+   */
   allowRemoteImages?: boolean
   /** Vite/public base URL. */
   baseUrl?: string
 }
 
 /**
- * Icon pipeline:
- * 1. optional remote `imageUrl` (opt-in)
- * 2. local official pack under `public/icons/roles/{id}.webp|png|…`
+ * Icon pipeline (UI walks candidates; load errors fall through):
+ * 1. Script JSON `image` URL when allowRemoteImages (default on)
+ * 2. local pack under `public/icons/roles/{id}.webp|png|…`
  * 3. faction-color placeholder
- *
- * UI should attempt `asset`/`url` and fall back to placeholder on load error.
  */
 export class CompositeIconResolver implements IconResolver {
   private readonly placeholder = new PlaceholderIconResolver()
+  private readonly allowRemoteImages: boolean
+  private readonly baseUrl: string
 
-  constructor(private readonly options: CompositeIconOptions = {}) {}
+  constructor(options: CompositeIconOptions = {}) {
+    this.allowRemoteImages = options.allowRemoteImages ?? true
+    this.baseUrl = options.baseUrl ?? import.meta.env.BASE_URL ?? '/'
+  }
 
   resolve(
     roleId: string,
     faction: FactionId = 'unknown',
     imageUrl?: string,
   ): IconResolveResult {
-    if (this.options.allowRemoteImages && imageUrl?.trim()) {
+    if (this.allowRemoteImages && imageUrl?.trim()) {
       return { kind: 'url', value: imageUrl.trim(), faction }
     }
 
     if (roleId) {
       return {
         kind: 'asset',
-        // Preferred extension; RoleIcon will try the full candidate list.
-        value: roleIconAssetUrl(
-          roleId,
-          'webp',
-          this.options.baseUrl ?? import.meta.env.BASE_URL ?? '/',
-        ),
+        value: roleIconAssetUrl(roleId, 'webp', this.baseUrl),
         faction,
       }
     }
 
     return this.placeholder.resolve(roleId, faction)
+  }
+
+  /**
+   * Ordered image URLs to try before the faction placeholder.
+   * Remote (if allowed) → local pack extensions.
+   */
+  candidates(
+    roleId: string,
+    imageUrl?: string,
+  ): string[] {
+    const list: string[] = []
+    if (this.allowRemoteImages && imageUrl?.trim()) {
+      list.push(imageUrl.trim())
+    }
+    if (roleId) {
+      list.push(...roleIconCandidates(roleId, this.baseUrl))
+    }
+    return [...new Set(list)]
   }
 
   placeholderFor(faction: FactionId = 'unknown'): IconResolveResult {
