@@ -18,7 +18,9 @@ interface RoleIconProps {
 /**
  * Renders role art with fallbacks:
  * Script JSON `image` URL (on by default) → local pack → neutral placeholder.
- * Image-backed icons use a plain white circular background (no faction tint).
+ *
+ * Image-backed icons always sit on an opaque white circular disc — never
+ * faction/selected tints (those belong on borders/labels only).
  */
 export function RoleIcon(props: RoleIconProps) {
   const id = props.role?.id ?? props.roleId ?? ''
@@ -55,23 +57,29 @@ function RoleIconInner({
 
   if (src) {
     return (
-      <img
-        src={src}
-        alt={role?.name ?? id}
-        width={size}
-        height={size}
-        className={`rounded-full object-contain ${className}`}
-        style={{ width: size, height: size, background: '#ffffff' }}
-        referrerPolicy="no-referrer"
-        onError={() => setSrcIndex((i) => i + 1)}
-      />
+      <span
+        className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white ${className}`}
+        style={{ width: size, height: size, backgroundColor: '#ffffff' }}
+        aria-hidden={false}
+      >
+        <img
+          src={src}
+          alt={role?.name ?? id}
+          width={size}
+          height={size}
+          className="size-full rounded-full object-contain bg-white"
+          style={{ backgroundColor: '#ffffff' }}
+          referrerPolicy="no-referrer"
+          onError={() => setSrcIndex((i) => i + 1)}
+        />
+      </span>
     )
   }
 
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full text-[10px] font-semibold text-white ${className}`}
-      style={{ width: size, height: size, background: PLACEHOLDER_BG }}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white ${className}`}
+      style={{ width: size, height: size, backgroundColor: PLACEHOLDER_BG }}
       aria-label={role?.name ?? (id || '未指派')}
     >
       {seatLabel ?? role?.name?.slice(0, 1) ?? '?'}
