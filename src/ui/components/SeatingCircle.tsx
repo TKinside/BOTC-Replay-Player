@@ -84,10 +84,11 @@ function SeatToken({
       type="button"
       onClick={onClick}
       aria-pressed={selected}
-      className={`absolute z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5 rounded-xl border px-1 py-1.5 text-center shadow-sm transition active:scale-95 ${
+      // Selection = border only. Do not recolor the role icon disc.
+      className={`absolute z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5 rounded-xl border bg-transparent px-1 py-1.5 text-center transition active:scale-95 ${
         selected
-          ? 'border-[var(--accent-soft)] bg-[var(--bg-elevated)]'
-          : 'border-[var(--line)] bg-[var(--bg-panel)]'
+          ? 'border-[var(--accent-soft)]'
+          : 'border-[var(--line)]'
       }`}
       style={{ ...style, width: tokenWidth, minHeight: 64 }}
     >
