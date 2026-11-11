@@ -8,7 +8,7 @@ Blood on the Clocktower 说书人复盘 / 对局日志 Web 应用（mobile-first
 
 - React 19 + TypeScript + Vite
 - Tailwind CSS
-- Vitest（领域层 / JSON 适配器单测，不依赖 DOM）
+- Vitest（领域层 / JSON 适配器 / 图标路径，不依赖 DOM）
 - IndexedDB（`idb`）本地对局持久化
 
 ## 本地运行
@@ -16,37 +16,44 @@ Blood on the Clocktower 说书人复盘 / 对局日志 Web 应用（mobile-first
 ```bash
 pnpm install
 pnpm dev      # http://localhost:5173
-pnpm test     # 领域 + townsquare 适配器单测
-pnpm build    # 生产构建
-pnpm preview  # 预览构建产物
+pnpm test
+pnpm build
+pnpm preview
 ```
 
-也可用 `npm install` / `npm run …`。
+## 怎么用（最短路径）
 
-## 目录结构（解耦分层）
+1. **新建 · 官方脚本「暗流涌动」**，或首页直接 **导入 townsquare Script JSON**
+2. 圆桌加人 / 指派角色（角色池来自本局脚本）
+3. 日志：夜/昼阶段 + 结构化事件
+4. 导出长图（昵称明文）
+
+样例 JSON：[`public/samples/custom-script.sample.json`](public/samples/custom-script.sample.json)
+
+## 角色图标
+
+默认阵营色占位。把官方/自备图丢进 [`public/icons/roles/`](public/icons/roles/)（文件名 = role id，如 `washerwoman.webp`），构建后自动优先使用。说明见该目录 README。**请先确认美术许可再分发。**
+
+## 目录结构
 
 ```
 src/
-  domain/          # 纯领域模型与 reduce（无 DOM）
-  registries/      # 事件类型 / 状态 / 角色 / 脚本注册表
-  application/     # 用例 / MatchService（UI 不直连适配器）
-  ports/           # 仓储、脚本源、导出等接口
+  domain/ application/ ports/ registries/
   adapters/
-    persistence/   # IndexedDB MatchRepository
-    script/        # townsquare JSON + OfficialRoleLibrary（暗流涌动）
-    icons/         # 占位图标
-    export/        # 长图导出（昵称明文）
-  ui/              # 页面与组件（mobile-first）
+    script/        # townsquare JSON + OfficialRoleLibrary（TB + 旅人目录）
+    icons/         # placeholder → local pack → (opt-in) remote
+    persistence/ export/
+  ui/
+public/
+  icons/roles/     # 用户自备官方图标包
+  samples/         # Script JSON 样例
+docs/deploy.md     # GitHub Pages / Cloudflare Pages
 ```
 
-## 当前可用（MVP 切片）
+## 部署
 
-- 对局列表 ↔ IndexedDB：创建 / 打开 / 删除 / 自动保存
-- 新建「暗流涌动」或导入 townsquare 兼容 Script JSON（含自制角色）
-- 圆桌座位：加人、昵称、从本局脚本角色池指派
-- 夜/昼阶段轴 + 结构化事件（提名/处决/死亡/毒/醉/复活/自定义）
-- 长图 PNG 导出（昵称原样保留）
+见 [`docs/deploy.md`](docs/deploy.md)。已含 GitHub Actions Pages workflow；Cloudflare 用 `pnpm build` → `dist` + `_redirects`。
 
 ## 尚未做
 
-完整事件录入打磨、圆桌动画精修、真实官方图标、PWA、统计、后端同步。
+PWA、统计、真实官方图标包（许可）、云同步。

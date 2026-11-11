@@ -109,7 +109,7 @@ export function MatchEditorPage() {
         </p>
       </header>
 
-      <nav className="flex gap-1 overflow-x-auto border-b border-[var(--line)] pb-px">
+      <nav className="sticky top-0 z-20 -mx-1 flex gap-1 overflow-x-auto border-b border-[var(--line)] bg-[var(--bg-deep)]/95 px-1 pb-px backdrop-blur-sm">
         {(
           [
             ['table', '圆桌'],
@@ -122,7 +122,7 @@ export function MatchEditorPage() {
             key={id}
             type="button"
             onClick={() => setTab(id)}
-            className={`shrink-0 px-3 py-2 text-sm ${
+            className={`min-h-11 shrink-0 px-3 py-2 text-sm touch-manipulation ${
               tab === id
                 ? 'border-b-2 border-[var(--accent)] text-[var(--ink)]'
                 : 'text-[var(--ink-muted)]'
@@ -171,16 +171,17 @@ export function MatchEditorPage() {
           >
             <input
               name="playerName"
-              className="min-w-0 flex-1 rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-3 py-2 text-sm"
+              className="min-h-11 min-w-0 flex-1 rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-3 py-2 text-base sm:text-sm"
               placeholder="新玩家昵称"
               autoComplete="off"
+              enterKeyHint="done"
               disabled={busy}
               required
             />
             <button
               type="submit"
               disabled={busy}
-              className="rounded-md bg-[var(--accent)] px-3 py-2 text-sm text-white disabled:opacity-60"
+              className="min-h-11 rounded-md bg-[var(--accent)] px-3 py-2 text-sm text-white touch-manipulation disabled:opacity-60"
             >
               加人
             </button>
