@@ -14,4 +14,24 @@ export type {
   MatchView,
 } from './types'
 
-export { reduceMatch, appendEvent } from './reduce'
+export {
+  reduceMatch,
+  reduceRichMatch,
+  reducePlayerStatuses,
+  applyStatusPatches,
+  appendEvent,
+  touchMatch,
+  type PlayerStatusView,
+  type RichMatchView,
+} from './reduce'
+
+export {
+  createPlayer,
+  addPlayer,
+  updatePlayer,
+  removePlayer,
+  assignRole,
+  advancePhase,
+  setScript,
+  formatPhaseLabel,
+} from './matchMutations'

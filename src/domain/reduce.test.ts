@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { appendEvent, reduceMatch } from './reduce'
+import { appendEvent, reduceMatch, reducePlayerStatuses } from './reduce'
+import { addPlayer, advancePhase, assignRole } from './matchMutations'
 import type { Match } from './types'
 
 function emptyMatch(): Match {
@@ -31,7 +32,6 @@ function emptyMatch(): Match {
 
 describe('domain/reduceMatch', () => {
   it('derives MatchView without needing DOM', () => {
-    // Smoke: prove domain runs in node (vitest environment: node).
     expect(typeof document).toBe('undefined')
 
     const match = emptyMatch()
@@ -56,5 +56,46 @@ describe('domain/reduceMatch', () => {
 
     expect(match.events).toHaveLength(0)
     expect(reduceMatch(next).eventCount).toBe(1)
+  })
+
+  it('reducePlayerStatuses applies poison/death patches', () => {
+    const statuses = reducePlayerStatuses([
+      {
+        id: 'e1',
+        typeId: 'poison',
+        phaseId: 'night-1',
+        at: '2026-01-01T01:00:00.000Z',
+        payload: {},
+        statusApply: [{ playerId: 'p1', statusId: 'poisoned', op: 'add' }],
+      },
+      {
+        id: 'e2',
+        typeId: 'death',
+        phaseId: 'night-1',
+        at: '2026-01-01T01:01:00.000Z',
+        payload: {},
+        statusApply: [{ playerId: 'p1', statusId: 'dead', op: 'add' }],
+      },
+    ])
+    expect(statuses).toEqual([
+      { playerId: 'p1', statuses: ['poisoned', 'dead'] },
+    ])
+  })
+})
+
+describe('domain/matchMutations', () => {
+  it('adds players, assigns roles, advances night→day→night', () => {
+    let match = emptyMatch()
+    match = { ...match, players: [], phases: [{ id: 'setup', kind: 'setup', index: 0 }] }
+    match = addPlayer(match, '徒')
+    match = assignRole(match, match.players[0]!.id, 'washerwoman')
+    expect(match.players[0]?.roleId).toBe('washerwoman')
+
+    match = advancePhase(match)
+    expect(match.phases.at(-1)).toMatchObject({ kind: 'night', index: 1 })
+    match = advancePhase(match)
+    expect(match.phases.at(-1)).toMatchObject({ kind: 'day', index: 1 })
+    match = advancePhase(match)
+    expect(match.phases.at(-1)).toMatchObject({ kind: 'night', index: 2 })
   })
 })

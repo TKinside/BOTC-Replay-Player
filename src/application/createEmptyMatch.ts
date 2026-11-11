@@ -1,12 +1,5 @@
 import type { Match, ScriptSnapshot } from '@/domain'
-
-function nowIso(): string {
-  return new Date().toISOString()
-}
-
-function newId(prefix: string): string {
-  return `${prefix}-${crypto.randomUUID()}`
-}
+import { newId, nowIso } from './ids'
 
 const EMPTY_SCRIPT: ScriptSnapshot = {
   origin: { kind: 'official-library' },

@@ -1,34 +1,43 @@
-import type { RoleDef } from '@/domain'
+import type { RoleDef, ScriptSnapshot } from '@/domain'
 import type { RoleCatalog } from '@/ports'
+import { cleanRoleId } from './normalize'
+import { TROUBLE_BREWING_ROLES } from './officialRoles/troubleBrewing'
+
+const ALL_OFFICIAL: RoleDef[] = [...TROUBLE_BREWING_ROLES]
+
+const BY_ID = new Map(ALL_OFFICIAL.map((r) => [r.id, r]))
 
 /**
- * OfficialRoleLibrary — placeholder catalog for no-JSON manual assignment.
- * Stage A follow-up: seed a real subset aligned with the official Chinese wiki.
+ * OfficialRoleLibrary — built-in catalog for no-JSON manual assignment
+ * and for completing known ids when importing townsquare Script JSON.
  */
-const PLACEHOLDER_ROLES: RoleDef[] = [
-  {
-    id: 'washerwoman',
-    name: '洗衣妇',
-    faction: 'townsfolk',
-    ability: '占位：官方角色库尚未灌入全文能力。',
-    source: 'official',
-  },
-  {
-    id: 'imp',
-    name: '小恶魔',
-    faction: 'demon',
-    ability: '占位：官方角色库尚未灌入全文能力。',
-    source: 'official',
-  },
-]
-
 export class OfficialRoleLibrary implements RoleCatalog {
   async listRoles(): Promise<RoleDef[]> {
-    return [...PLACEHOLDER_ROLES]
+    return [...ALL_OFFICIAL]
   }
 
   async getRole(id: string): Promise<RoleDef | undefined> {
-    return PLACEHOLDER_ROLES.find((r) => r.id === id)
+    return BY_ID.get(cleanRoleId(id))
+  }
+
+  getRoleSync(id: string): RoleDef | undefined {
+    return BY_ID.get(cleanRoleId(id))
+  }
+
+  listSync(): RoleDef[] {
+    return [...ALL_OFFICIAL]
+  }
+
+  /** Frozen TB / 暗流涌动 script snapshot for official-library origin matches. */
+  buildTroubleBrewingSnapshot(): ScriptSnapshot {
+    return {
+      origin: { kind: 'official-library', editionId: 'tb' },
+      id: 'tb',
+      name: '暗流涌动',
+      author: 'The Pandemonium Institute',
+      roles: TROUBLE_BREWING_ROLES.map((r) => ({ ...r })),
+      meta: { edition: 'tb' },
+    }
   }
 }
 

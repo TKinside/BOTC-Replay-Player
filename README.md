@@ -8,15 +8,15 @@ Blood on the Clocktower 说书人复盘 / 对局日志 Web 应用（mobile-first
 
 - React 19 + TypeScript + Vite
 - Tailwind CSS
-- Vitest（领域层单测，不依赖 DOM）
-- IndexedDB（本地对局持久化，适配器 stub）
+- Vitest（领域层 / JSON 适配器单测，不依赖 DOM）
+- IndexedDB（`idb`）本地对局持久化
 
 ## 本地运行
 
 ```bash
 pnpm install
-pnpm dev      # 开发服务器
-pnpm test     # 领域单测
+pnpm dev      # http://localhost:5173
+pnpm test     # 领域 + townsquare 适配器单测
 pnpm build    # 生产构建
 pnpm preview  # 预览构建产物
 ```
@@ -29,13 +29,24 @@ pnpm preview  # 预览构建产物
 src/
   domain/          # 纯领域模型与 reduce（无 DOM）
   registries/      # 事件类型 / 状态 / 角色 / 脚本注册表
-  application/     # 用例 / 命令编排
+  application/     # 用例 / MatchService（UI 不直连适配器）
   ports/           # 仓储、脚本源、导出等接口
-  adapters/        # IndexedDB / townsquare JSON / 官方库 / 长图导出
+  adapters/
+    persistence/   # IndexedDB MatchRepository
+    script/        # townsquare JSON + OfficialRoleLibrary（暗流涌动）
+    icons/         # 占位图标
+    export/        # 长图导出（昵称明文）
   ui/              # 页面与组件（mobile-first）
 ```
 
-## 当前阶段
+## 当前可用（MVP 切片）
 
-**脚手架（阶段 A 骨架）**：路由壳、领域类型与 `reduce` 冒烟、适配器 / 注册表 stubs。  
-尚未实现：完整事件录入、圆桌精修、真实图标、PWA、统计、后端。
+- 对局列表 ↔ IndexedDB：创建 / 打开 / 删除 / 自动保存
+- 新建「暗流涌动」或导入 townsquare 兼容 Script JSON（含自制角色）
+- 圆桌座位：加人、昵称、从本局脚本角色池指派
+- 夜/昼阶段轴 + 结构化事件（提名/处决/死亡/毒/醉/复活/自定义）
+- 长图 PNG 导出（昵称原样保留）
+
+## 尚未做
+
+完整事件录入打磨、圆桌动画精修、真实官方图标、PWA、统计、后端同步。
