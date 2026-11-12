@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { appendEvent, reduceMatch, reducePlayerStatuses } from './reduce'
+import {
+  appendEvent,
+  reduceMatch,
+  reducePlayerStatuses,
+  removeEvent,
+} from './reduce'
 import {
   addPlayer,
   addPlayers,
@@ -65,6 +70,21 @@ describe('domain/reduceMatch', () => {
 
     expect(match.events).toHaveLength(0)
     expect(reduceMatch(next).eventCount).toBe(1)
+  })
+
+  it('removeEvent drops one event and is a no-op for unknown ids', () => {
+    const match = appendEvent(emptyMatch(), {
+      id: 'evt-1',
+      typeId: 'custom',
+      phaseId: 'night-1',
+      at: '2026-01-01T01:00:00.000Z',
+      payload: {},
+      text: '占位事件',
+    })
+    expect(removeEvent(match, 'missing')).toBe(match)
+    const next = removeEvent(match, 'evt-1')
+    expect(next.events).toHaveLength(0)
+    expect(reduceMatch(next).eventCount).toBe(0)
   })
 
   it('reducePlayerStatuses applies poison/death patches', () => {

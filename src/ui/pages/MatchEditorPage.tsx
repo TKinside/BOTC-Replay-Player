@@ -238,6 +238,9 @@ export function MatchEditorPage() {
           onRemovePhase={(phaseId) =>
             void run((current) => service.removePhase(current, phaseId))
           }
+          onRemoveEvent={(eventId) =>
+            void run((current) => service.removeEvent(current, eventId))
+          }
           onRecordEvent={(input) =>
             void run((current) => service.recordEvent(current, input))
           }

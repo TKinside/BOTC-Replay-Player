@@ -78,6 +78,15 @@ export function appendEvent(
   }
 }
 
+/** Remove one event by id (no-op if missing). Status views re-reduce from the rest. */
+export function removeEvent(match: Match, eventId: string): Match {
+  if (!match.events.some((e) => e.id === eventId)) return match
+  return touchMatch({
+    ...match,
+    events: match.events.filter((e) => e.id !== eventId),
+  })
+}
+
 export function touchMatch(match: Match, at = new Date().toISOString()): Match {
   return { ...match, updatedAt: at }
 }

@@ -4,6 +4,7 @@ import {
   advancePhase as domainAdvancePhase,
   appendEvent,
   assignRole as domainAssignRole,
+  removeEvent as domainRemoveEvent,
   removePhase as domainRemovePhase,
   removePlayer as domainRemovePlayer,
   setScript,
@@ -125,6 +126,10 @@ export class MatchService {
 
   async removePhase(match: Match, phaseId: string): Promise<Match> {
     return this.save(domainRemovePhase(match, phaseId))
+  }
+
+  async removeEvent(match: Match, eventId: string): Promise<Match> {
+    return this.save(domainRemoveEvent(match, eventId))
   }
 
   async recordEvent(

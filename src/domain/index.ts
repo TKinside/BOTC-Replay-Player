@@ -20,6 +20,7 @@ export {
   reducePlayerStatuses,
   applyStatusPatches,
   appendEvent,
+  removeEvent,
   touchMatch,
   type PlayerStatusView,
   type RichMatchView,
