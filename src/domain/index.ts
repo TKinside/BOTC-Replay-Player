@@ -28,6 +28,8 @@ export {
 export {
   createPlayer,
   addPlayer,
+  parsePlayerNames,
+  addPlayers,
   updatePlayer,
   removePlayer,
   assignRole,
