@@ -1,22 +1,17 @@
 import { useRef, useState, type ReactNode } from 'react'
 
 type Props = {
-  scriptName: string
-  roleCount: number
   disabled?: boolean
   onImportJson: (text: string) => Promise<string | null>
-  /** Seating circle rendered above the import control. */
+  /** Seating circle to anchor the corner import control. */
   children: ReactNode
 }
 
 /**
- * Script JSON import on the 圆桌 tab.
- * Button sits under the circle on the right (outside seats).
- * Click opens a .json file picker only — no paste UI.
+ * Tiny「导入」control at the seating circle's bottom-right corner.
+ * One tap → native .json file picker (no paste UI).
  */
 export function ScriptJsonImport({
-  scriptName,
-  roleCount,
   disabled,
   onImportJson,
   children,
@@ -41,23 +36,21 @@ export function ScriptJsonImport({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="mx-auto w-full max-w-[22rem]">{children}</div>
-
-      {/* Right-aligned under the circle — clear of seat tokens. */}
-      <div className="mx-auto flex w-full max-w-[22rem] items-center justify-end gap-2">
-        <p className="min-w-0 flex-1 truncate text-xs text-[var(--ink-muted)]">
-          脚本：{scriptName} · {roleCount} 角色
-        </p>
+      <div className="relative mx-auto w-full max-w-[22rem]">
+        {children}
+        {/* Outside the seat ring, flush to the square's bottom-right corner. */}
         <button
           type="button"
           disabled={disabled || busy}
+          aria-label="导入脚本 JSON 文件"
+          title="选择 .json 脚本文件"
           onClick={() => {
             setMessage(null)
             fileRef.current?.click()
           }}
-          className="min-h-10 shrink-0 rounded-md border border-[var(--accent)] bg-[var(--bg-panel)] px-3 py-2 text-sm text-[var(--accent-soft)] touch-manipulation disabled:opacity-60"
+          className="absolute bottom-0 right-0 z-20 min-h-8 rounded border border-[var(--accent)] bg-[var(--bg-deep)]/95 px-2 py-1 text-[11px] leading-none text-[var(--accent-soft)] shadow-sm backdrop-blur-sm touch-manipulation disabled:opacity-60"
         >
-          {busy ? '导入中…' : '导入 JSON'}
+          {busy ? '…' : '导入'}
         </button>
         <input
           ref={fileRef}
