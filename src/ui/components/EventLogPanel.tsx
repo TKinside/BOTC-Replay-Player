@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { Match, Player } from '@/domain'
 import { EventTypeRegistry } from '@/registries'
-import { SeatingCircle } from './SeatingCircle'
+import { SeatingStatusPanel } from './SeatingStatusPanel'
 
 interface EventLogPanelProps {
   match: Match
@@ -61,49 +61,44 @@ export function EventLogPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <SeatingCircle
-          match={match}
-          compact
-          selectedPlayerId={selectedPlayerId || undefined}
-          onSelectPlayer={(playerId) => {
-            if (pickField === 'actor') setActorId(playerId)
-            else setTargetId(playerId)
-          }}
-        />
-        <p className="text-center text-xs text-[var(--ink-muted)]">
-          圆桌随事件实时更新 · 点选座位填入
-          <button
-            type="button"
-            className={`mx-1 underline-offset-2 touch-manipulation ${
-              pickField === 'target'
-                ? 'text-[var(--accent-soft)] underline'
-                : 'text-[var(--ink-muted)]'
-            }`}
-            onClick={() => setPickField('target')}
-          >
-            目标
-          </button>
-          或
-          <button
-            type="button"
-            className={`mx-1 underline-offset-2 touch-manipulation ${
-              pickField === 'actor'
-                ? 'text-[var(--accent-soft)] underline'
-                : 'text-[var(--ink-muted)]'
-            }`}
-            onClick={() => setPickField('actor')}
-          >
-            行动者
-          </button>
-        </p>
-      </div>
+      <SeatingStatusPanel
+        match={match}
+        selectedPlayerId={selectedPlayerId || undefined}
+        pickFieldLabel={pickField === 'actor' ? '行动者' : '目标'}
+        onSelectPlayer={(playerId) => {
+          if (pickField === 'actor') setActorId(playerId)
+          else setTargetId(playerId)
+        }}
+      />
 
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           <h3 className="text-base font-medium">事件日志</h3>
           <p className="text-xs text-[var(--ink-muted)]">
-            当前：{currentPhase?.label ?? '—'}
+            当前：{currentPhase?.label ?? '—'} · 点选上方座位可填
+            <button
+              type="button"
+              className={`mx-1 underline-offset-2 touch-manipulation ${
+                pickField === 'target'
+                  ? 'text-[var(--accent-soft)] underline'
+                  : 'text-[var(--ink-muted)]'
+              }`}
+              onClick={() => setPickField('target')}
+            >
+              目标
+            </button>
+            /
+            <button
+              type="button"
+              className={`mx-1 underline-offset-2 touch-manipulation ${
+                pickField === 'actor'
+                  ? 'text-[var(--accent-soft)] underline'
+                  : 'text-[var(--ink-muted)]'
+              }`}
+              onClick={() => setPickField('actor')}
+            >
+              行动者
+            </button>
           </p>
         </div>
         <button
