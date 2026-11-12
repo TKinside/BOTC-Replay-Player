@@ -86,10 +86,17 @@ export function assignRole(
 }
 
 export function formatPhaseLabel(kind: PhaseKind, index: number): string {
-  if (kind === 'setup') return '准备'
+  if (kind === 'setup') return '准备阶段'
   if (kind === 'end') return '终局'
-  if (kind === 'night') return index <= 1 ? '第一夜' : `第${index}夜`
-  return `第${index}昼`
+  if (kind === 'night') return `第 ${index} 夜`
+  return `第 ${index} 天`
+}
+
+export function formatPhaseEnLabel(kind: PhaseKind, index: number): string {
+  if (kind === 'setup') return 'Setup'
+  if (kind === 'end') return 'End'
+  if (kind === 'night') return `Night ${index}`
+  return `Day ${index}`
 }
 
 /** Advance to next night/day phase (skips setup after first advance). */
@@ -121,6 +128,21 @@ export function advancePhase(match: Match): Match {
   return touchMatch({
     ...match,
     phases: [...match.phases, phase],
+  })
+}
+
+/**
+ * Remove a phase and its events. Only the latest phase may be removed,
+ * and at least one phase (usually setup) must remain.
+ */
+export function removePhase(match: Match, phaseId: string): Match {
+  if (match.phases.length <= 1) return match
+  const last = match.phases[match.phases.length - 1]
+  if (!last || last.id !== phaseId) return match
+  return touchMatch({
+    ...match,
+    phases: match.phases.slice(0, -1),
+    events: match.events.filter((e) => e.phaseId !== phaseId),
   })
 }
 
