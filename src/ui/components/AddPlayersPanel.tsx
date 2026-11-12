@@ -47,7 +47,15 @@ export function AddPlayersPanel({ busy, onAddOne, onAddBatch }: Props) {
         </button>
       </form>
 
-      <div className="flex flex-col gap-2">
+      <form
+        className="flex flex-col gap-2"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (previewNames.length === 0) return
+          onAddBatch(previewNames)
+          setBatchText('')
+        }}
+      >
         <label className="text-sm text-[var(--ink-muted)]" htmlFor="batch-names">
           批量加人（每行一个昵称，也可用顿号、逗号或空格分隔）
         </label>
@@ -60,25 +68,19 @@ export function AddPlayersPanel({ busy, onAddOne, onAddBatch }: Props) {
           placeholder={'例如：\n阿徒\n小果\n夜枭'}
           className="min-h-24 w-full resize-y rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-3 py-2 text-base leading-relaxed sm:text-sm"
         />
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-xs text-[var(--ink-muted)]">
-            {previewNames.length > 0
-              ? `将加入 ${previewNames.length} 人`
-              : '粘贴或输入后可预览人数'}
-          </p>
-          <button
-            type="button"
-            disabled={busy || previewNames.length === 0}
-            onClick={() => {
-              onAddBatch(previewNames)
-              setBatchText('')
-            }}
-            className="min-h-11 rounded-md border border-[var(--accent)] px-3 py-2 text-sm text-[var(--accent-soft)] touch-manipulation disabled:opacity-60"
-          >
-            批量加入
-          </button>
-        </div>
-      </div>
+        <p className="text-xs text-[var(--ink-muted)]" aria-live="polite">
+          {previewNames.length > 0
+            ? `将加入 ${previewNames.length} 人`
+            : '粘贴或输入后可预览人数'}
+        </p>
+        <button
+          type="submit"
+          disabled={busy || previewNames.length === 0}
+          className="min-h-11 w-full rounded-md bg-[var(--accent)] px-3 py-2 text-sm text-white touch-manipulation disabled:opacity-60"
+        >
+          批量加入
+        </button>
+      </form>
     </div>
   )
 }
