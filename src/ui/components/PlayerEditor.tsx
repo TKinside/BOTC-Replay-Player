@@ -46,7 +46,7 @@ export function PlayerEditor({
     >
       <button
         type="button"
-        aria-label="关闭"
+        aria-label="点击关闭编辑面板"
         className="absolute inset-0 bg-black/55"
         onClick={onClose}
       />
