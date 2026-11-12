@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { Match, Player, RoleDef } from '@/domain'
 import { FACTION_LABEL } from '../lib/factionColor'
 import { RoleChip } from './RoleChip'
@@ -23,7 +23,12 @@ export function PlayerEditor({
 }: PlayerEditorProps) {
   const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
-  const roles = groupRoles(match.script.roles)
+  const [roleQuery, setRoleQuery] = useState('')
+  const roles = useMemo(
+    () => groupRoles(filterRolesByName(match.script.roles, roleQuery)),
+    [match.script.roles, roleQuery],
+  )
+  const hasAnyRoles = match.script.roles.length > 0
 
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -98,6 +103,22 @@ export function PlayerEditor({
                 清除角色
               </button>
             </div>
+            {hasAnyRoles && (
+              <label className="mb-3 block text-sm">
+                <span className="sr-only">按角色名搜索</span>
+                <input
+                  type="search"
+                  enterKeyHint="search"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder="搜索角色名…"
+                  value={roleQuery}
+                  onChange={(e) => setRoleQuery(e.target.value)}
+                  className="min-h-11 w-full rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-3 py-2 text-base sm:text-sm"
+                />
+              </label>
+            )}
             <div className="flex flex-col gap-3">
               {roles.map(([faction, list]) => (
                 <div key={faction}>
@@ -122,9 +143,14 @@ export function PlayerEditor({
                   </div>
                 </div>
               ))}
-              {roles.length === 0 && (
+              {!hasAnyRoles && (
                 <p className="text-xs text-[var(--ink-muted)]">
                   当前脚本没有角色 — 请先导入 Script JSON
+                </p>
+              )}
+              {hasAnyRoles && roles.length === 0 && (
+                <p className="text-xs text-[var(--ink-muted)]">
+                  没有匹配「{roleQuery.trim()}」的角色
                 </p>
               )}
             </div>
@@ -143,6 +169,21 @@ export function PlayerEditor({
       </div>
     </div>
   )
+}
+
+function normalizeRoleQuery(q: string): string {
+  return q.trim().toLowerCase()
+}
+
+/** Match display name (and id as a fallback for English lookups). */
+function filterRolesByName(roles: RoleDef[], query: string): RoleDef[] {
+  const q = normalizeRoleQuery(query)
+  if (!q) return roles
+  return roles.filter((role) => {
+    const name = role.name.toLowerCase()
+    const id = role.id.toLowerCase()
+    return name.includes(q) || id.includes(q)
+  })
 }
 
 function groupRoles(roles: RoleDef[]): [string, RoleDef[]][] {
