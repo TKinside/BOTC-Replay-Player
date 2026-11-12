@@ -9,7 +9,6 @@ export function MatchListPage() {
   const [matches, setMatches] = useState<Match[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
-  const [importText, setImportText] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const reload = useCallback(async () => {
@@ -42,30 +41,11 @@ export function MatchListPage() {
     }
   }, [])
 
-  async function createTb() {
+  async function createMatch() {
     setCreating(true)
     setError(null)
     try {
       const match = await getMatchService().createTroubleBrewing()
-      navigate(`/matches/${match.id}`)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '创建失败')
-      setCreating(false)
-    }
-  }
-
-  async function createFromJson() {
-    setCreating(true)
-    setError(null)
-    try {
-      const { match, parse } = await getMatchService().createFromScriptJson(
-        importText,
-      )
-      if (!parse.ok || !match) {
-        setError(parse.ok ? '创建失败' : parse.errors.join('\n'))
-        setCreating(false)
-        return
-      }
       navigate(`/matches/${match.id}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : '创建失败')
@@ -85,65 +65,18 @@ export function MatchListPage() {
         <div className="mb-3">
           <h2 className="text-lg font-medium">对局列表</h2>
           <p className="text-sm text-[var(--ink-muted)]">
-            保存在浏览器 IndexedDB，刷新不丢
+            保存在浏览器 IndexedDB，刷新不丢。脚本 JSON 在进入对局后于「圆桌」角上导入。
           </p>
         </div>
 
-        <div className="mb-4 grid gap-2">
-          <button
-            type="button"
-            disabled={creating}
-            onClick={() => void createTb()}
-            className="min-h-11 rounded-md bg-[var(--accent)] px-3 py-2.5 text-sm font-medium text-white touch-manipulation disabled:opacity-60"
-          >
-            新建 · 官方脚本「暗流涌动」
-          </button>
-        </div>
-
-        <div className="mb-4 rounded-lg border border-dashed border-[var(--accent-soft)]/50 bg-[var(--bg-panel)] p-3">
-          <h3 className="text-sm font-medium">导入 townsquare Script JSON 建局</h3>
-          <p className="mt-1 text-xs text-[var(--ink-muted)]">
-            线上魔典导出的数组 JSON（含自制角色）。无 JSON 时用上方官方库建局即可。
-          </p>
-          <textarea
-            className="mt-2 w-full rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-3 py-2 font-mono text-xs"
-            rows={5}
-            value={importText}
-            onChange={(e) => setImportText(e.target.value)}
-            placeholder='[{"id":"_meta","name":"..."}, "washerwoman", ...]'
-          />
-          <div className="mt-2 flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={creating || !importText.trim()}
-              onClick={() => void createFromJson()}
-              className="min-h-11 rounded-md bg-[var(--accent)] px-3 py-2 text-sm text-white touch-manipulation disabled:opacity-60"
-            >
-              解析并创建
-            </button>
-            <label className="inline-flex min-h-11 cursor-pointer items-center rounded-md border border-[var(--line)] px-3 py-2 text-sm touch-manipulation">
-              选择文件
-              <input
-                type="file"
-                accept="application/json,.json"
-                className="hidden"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0]
-                  if (!file) return
-                  setImportText(await file.text())
-                }}
-              />
-            </label>
-            <a
-              className="inline-flex min-h-11 items-center rounded-md border border-[var(--line)] px-3 py-2 text-sm text-[var(--accent-soft)]"
-              href={`${import.meta.env.BASE_URL}samples/custom-script.sample.json`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              样例 JSON
-            </a>
-          </div>
-        </div>
+        <button
+          type="button"
+          disabled={creating}
+          onClick={() => void createMatch()}
+          className="mb-5 min-h-12 w-full rounded-xl bg-[var(--bg-elevated)] px-4 py-3.5 text-base font-medium text-[var(--ink)] ring-1 ring-[var(--line)] touch-manipulation disabled:opacity-60"
+        >
+          {creating ? '创建中…' : '+ 创建记录'}
+        </button>
 
         {error && (
           <p className="mb-3 whitespace-pre-wrap text-sm text-red-300">{error}</p>
@@ -153,7 +86,7 @@ export function MatchListPage() {
           <p className="text-sm text-[var(--ink-muted)]">加载中…</p>
         ) : matches.length === 0 ? (
           <div className="rounded-lg border border-dashed border-[var(--line)] bg-[var(--bg-panel)] px-4 py-10 text-center text-sm text-[var(--ink-muted)]">
-            还没有对局。先新建「暗流涌动」，或粘贴 / 上传 Script JSON。
+            还没有对局。点上方「+ 创建记录」开始，再在圆桌导入脚本 JSON。
           </div>
         ) : (
           <ul className="flex flex-col gap-3">
