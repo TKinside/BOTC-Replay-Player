@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { appendEvent, reduceMatch, reducePlayerStatuses } from './reduce'
-import { addPlayer, advancePhase, assignRole } from './matchMutations'
+import {
+  addPlayer,
+  addPlayers,
+  advancePhase,
+  assignRole,
+  parsePlayerNames,
+} from './matchMutations'
 import type { Match } from './types'
 
 function emptyMatch(): Match {
@@ -97,5 +103,28 @@ describe('domain/matchMutations', () => {
     expect(match.phases.at(-1)).toMatchObject({ kind: 'day', index: 1 })
     match = advancePhase(match)
     expect(match.phases.at(-1)).toMatchObject({ kind: 'night', index: 2 })
+  })
+
+  it('parsePlayerNames splits lines / 、 / commas / whitespace and skips blanks', () => {
+    expect(parsePlayerNames('  阿徒\n\n小果、夜枭, Bob\tCarol  ')).toEqual([
+      '阿徒',
+      '小果',
+      '夜枭',
+      'Bob',
+      'Carol',
+    ])
+    expect(parsePlayerNames('   \n、,,  ')).toEqual([])
+  })
+
+  it('addPlayers appends seats in order and skips empty names', () => {
+    let match = emptyMatch()
+    match = { ...match, players: [] }
+    match = addPlayers(match, ['阿徒', '  ', '小果', '夜枭'])
+    expect(match.players.map((p) => ({ seat: p.seatIndex, name: p.name }))).toEqual([
+      { seat: 0, name: '阿徒' },
+      { seat: 1, name: '小果' },
+      { seat: 2, name: '夜枭' },
+    ])
+    expect(addPlayers(match, [])).toBe(match)
   })
 })

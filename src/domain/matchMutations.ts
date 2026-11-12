@@ -27,6 +27,36 @@ export function addPlayer(match: Match, name: string): Match {
   })
 }
 
+/**
+ * Parse pasted / typed nickname text into seat-ready names.
+ * Separators: newlines, Chinese 、, English commas, and whitespace runs.
+ * Empty tokens after trim are dropped.
+ */
+export function parsePlayerNames(raw: string): string[] {
+  return raw
+    .split(/[\n\r、,\s]+/u)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+}
+
+/** Append many players in seat order; skips blank names. Single save via caller. */
+export function addPlayers(match: Match, names: readonly string[]): Match {
+  const cleaned = names.map((n) => n.trim()).filter((n) => n.length > 0)
+  if (cleaned.length === 0) return match
+
+  let seatIndex = match.players.length
+  const added = cleaned.map((name) => {
+    const player = createPlayer(name, seatIndex)
+    seatIndex += 1
+    return player
+  })
+
+  return touchMatch({
+    ...match,
+    players: [...match.players, ...added],
+  })
+}
+
 export function updatePlayer(
   match: Match,
   playerId: string,

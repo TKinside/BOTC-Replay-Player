@@ -1,5 +1,6 @@
 import {
   addPlayer as domainAddPlayer,
+  addPlayers as domainAddPlayers,
   advancePhase as domainAdvancePhase,
   appendEvent,
   assignRole as domainAssignRole,
@@ -90,6 +91,11 @@ export class MatchService {
 
   async addPlayer(match: Match, name: string): Promise<Match> {
     return this.save(domainAddPlayer(match, name))
+  }
+
+  /** Batch-add nicknames (paste-friendly). Persists once after all seats are appended. */
+  async addPlayers(match: Match, names: readonly string[]): Promise<Match> {
+    return this.save(domainAddPlayers(match, names))
   }
 
   async updatePlayer(

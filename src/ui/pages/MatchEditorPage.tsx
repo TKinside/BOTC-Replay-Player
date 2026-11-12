@@ -4,6 +4,7 @@ import type { Match } from '@/domain'
 import { getMatchService } from '@/application'
 import { useMatch } from '../hooks/useMatch'
 import { SeatingCircle } from '../components/SeatingCircle'
+import { AddPlayersPanel } from '../components/AddPlayersPanel'
 import { PlayerEditor } from '../components/PlayerEditor'
 import { EventLogPanel } from '../components/EventLogPanel'
 import { ScriptImportPanel } from '../components/ScriptImportPanel'
@@ -150,42 +151,24 @@ export function MatchEditorPage() {
             onSelectPlayer={setSelectedPlayerId}
           />
 
-          <form
-            className="flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault()
-              const fd = new FormData(e.currentTarget)
-              const name = String(fd.get('playerName') ?? '').trim()
-              if (!name) {
-                setStatus('请输入玩家昵称')
-                return
-              }
-              const form = e.currentTarget
+          <AddPlayersPanel
+            busy={busy}
+            onAddOne={(name) => {
               void run(async (current) => {
                 const next = await service.addPlayer(current, name)
-                form.reset()
                 setSelectedPlayerId(next.players.at(-1)?.id)
                 return next
               })
             }}
-          >
-            <input
-              name="playerName"
-              className="min-h-11 min-w-0 flex-1 rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-3 py-2 text-base sm:text-sm"
-              placeholder="新玩家昵称"
-              autoComplete="off"
-              enterKeyHint="done"
-              disabled={busy}
-              required
-            />
-            <button
-              type="submit"
-              disabled={busy}
-              className="min-h-11 rounded-md bg-[var(--accent)] px-3 py-2 text-sm text-white touch-manipulation disabled:opacity-60"
-            >
-              加人
-            </button>
-          </form>
+            onAddBatch={(names) => {
+              void run(async (current) => {
+                const next = await service.addPlayers(current, names)
+                setSelectedPlayerId(next.players.at(-1)?.id)
+                setStatus(`已加入 ${names.length} 名玩家`)
+                return next
+              })
+            }}
+          />
 
           <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-panel)] p-3">
             <PlayerEditor
