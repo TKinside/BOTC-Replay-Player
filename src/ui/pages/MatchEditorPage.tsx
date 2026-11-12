@@ -4,12 +4,12 @@ import type { Match } from '@/domain'
 import { getMatchService } from '@/application'
 import { useMatch } from '../hooks/useMatch'
 import { SeatingCircle } from '../components/SeatingCircle'
+import { ScriptJsonImport } from '../components/ScriptJsonImport'
 import { AddPlayersPanel } from '../components/AddPlayersPanel'
 import { PlayerEditor } from '../components/PlayerEditor'
 import { EventLogPanel } from '../components/EventLogPanel'
-import { ScriptImportPanel } from '../components/ScriptImportPanel'
 
-type Tab = 'table' | 'script' | 'log' | 'export'
+type Tab = 'table' | 'log' | 'export'
 
 export function MatchEditorPage() {
   const { matchId } = useParams()
@@ -114,7 +114,6 @@ export function MatchEditorPage() {
         {(
           [
             ['table', '圆桌'],
-            ['script', '脚本'],
             ['log', '日志'],
             ['export', '导出'],
           ] as const
@@ -148,11 +147,33 @@ export function MatchEditorPage() {
 
       {tab === 'table' && (
         <div className="flex flex-col gap-4">
-          <SeatingCircle
-            match={match}
-            selectedPlayerId={selectedPlayerId}
-            onSelectPlayer={setSelectedPlayerId}
-          />
+          <ScriptJsonImport
+            scriptName={match.script.name}
+            roleCount={match.script.roles.length}
+            disabled={busy}
+            onImportJson={async (text) => {
+              const current = matchRef.current
+              if (!current) return '对局未加载'
+              const { match: next, parse } =
+                await service.importScriptIntoMatch(current, text)
+              if (!parse.ok) return parse.errors.join('\n')
+              if (next) {
+                matchRef.current = next
+                update(next)
+              }
+              const warn =
+                parse.warnings.length > 0
+                  ? `\n警告：\n${parse.warnings.join('\n')}`
+                  : ''
+              return `已导入「${parse.snapshot.name}」（${parse.snapshot.roles.length} 角色）${warn}`
+            }}
+          >
+            <SeatingCircle
+              match={match}
+              selectedPlayerId={selectedPlayerId}
+              onSelectPlayer={setSelectedPlayerId}
+            />
+          </ScriptJsonImport>
 
           <AddPlayersPanel
             busy={busy}
@@ -196,36 +217,6 @@ export function MatchEditorPage() {
               }
             />
           </div>
-        </div>
-      )}
-
-      {tab === 'script' && (
-        <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-panel)] p-3">
-          <ScriptImportPanel
-            scriptName={match.script.name}
-            roleCount={match.script.roles.length}
-            onUseTroubleBrewing={async () => {
-              await run((current) =>
-                service.applyOfficialTroubleBrewing(current),
-              )
-            }}
-            onImportJson={async (text) => {
-              const current = matchRef.current
-              if (!current) return '对局未加载'
-              const { match: next, parse } =
-                await service.importScriptIntoMatch(current, text)
-              if (!parse.ok) return parse.errors.join('\n')
-              if (next) {
-                matchRef.current = next
-                update(next)
-              }
-              const warn =
-                parse.warnings.length > 0
-                  ? `\n警告：\n${parse.warnings.join('\n')}`
-                  : ''
-              return `已导入「${parse.snapshot.name}」（${parse.snapshot.roles.length} 角色）${warn}`
-            }}
-          />
         </div>
       )}
 
