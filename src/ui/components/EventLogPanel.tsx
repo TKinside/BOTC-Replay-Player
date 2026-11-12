@@ -48,6 +48,20 @@ const RECORD_QUICK: {
   { id: 'evil', label: '邪恶阵营', tone: 'evil' },
 ]
 
+/** Second-level picks after tapping「说书人」(mini-program parity). */
+const STORYTELLER_OPTIONS: { id: string; label: string }[] = [
+  { id: 'three-out', label: '告知玩家：3个不在场角色' },
+  { id: 'which-minions', label: '告知玩家：哪些玩家是爪牙' },
+  { id: 'player-is-role', label: '告知玩家：某个玩家是某个角色' },
+  { id: 'role-in-play', label: '告知玩家：某个角色在场' },
+  { id: 'added-role', label: '加入了角色' },
+  { id: 'pretend-role', label: '假装某个角色在场' },
+  { id: 'pick-one', label: '选择1名玩家' },
+  { id: 'custom', label: '自定义' },
+]
+
+type RecordPicker = 'root' | 'storyteller'
+
 function toneClass(tone: 'neutral' | 'good' | 'evil'): string {
   if (tone === 'good') return 'text-[var(--good)]'
   if (tone === 'evil') return 'text-[var(--evil)]'
@@ -91,10 +105,11 @@ function PhaseIcon({ kind }: { kind: Phase['kind'] }) {
   )
 }
 
-function resolveQuickSnippet(match: Match, id: RecordQuickId): string {
+function resolveQuickSnippet(
+  match: Match,
+  id: Exclude<RecordQuickId, 'storyteller'>,
+): string {
   switch (id) {
-    case 'storyteller':
-      return '说书人'
     case 'all-players': {
       const names = allPlayerNames(match)
       return names.length > 0 ? `全体玩家（${names.join('、')}）` : '全体玩家'
@@ -120,6 +135,13 @@ function resolveQuickSnippet(match: Match, id: RecordQuickId): string {
   }
 }
 
+function ensureStorytellerPrefix(current: string): string {
+  const trimmed = current.trim()
+  if (!trimmed) return '说书人'
+  if (trimmed.includes('说书人')) return trimmed
+  return appendSnippet(trimmed, '说书人')
+}
+
 export function EventLogPanel({
   match,
   onAdvancePhase,
@@ -135,6 +157,7 @@ export function EventLogPanel({
   const [text, setText] = useState('')
   const [pickField, setPickField] = useState<'target' | 'actor'>('target')
   const [endWithPeriod, setEndWithPeriod] = useState(true)
+  const [recordPicker, setRecordPicker] = useState<RecordPicker>('root')
 
   const eventsByPhase = useMemo(() => {
     return match.phases.map((phase) => ({
@@ -173,10 +196,31 @@ export function EventLogPanel({
     setText('')
     setPickField('target')
     setEndWithPeriod(true)
+    setRecordPicker('root')
   }
 
   function insertIntoDraft(snippet: string) {
     setText((prev) => appendSnippet(prev, snippet))
+  }
+
+  function openStorytellerPicker() {
+    setText((prev) => ensureStorytellerPrefix(prev))
+    setRecordPicker('storyteller')
+  }
+
+  function pickStorytellerOption(opt: (typeof STORYTELLER_OPTIONS)[number]) {
+    if (opt.id === 'custom') {
+      setText((prev) => ensureStorytellerPrefix(prev))
+      setRecordPicker('root')
+      return
+    }
+    setText((prev) => {
+      const withSt = ensureStorytellerPrefix(prev)
+      // Prefer「说书人」+ option as one phrase when draft is only the prefix.
+      if (withSt === '说书人') return `说书人${opt.label}`
+      return appendSnippet(withSt, opt.label)
+    })
+    setRecordPicker('root')
   }
 
   function submitComposer() {
@@ -221,6 +265,7 @@ export function EventLogPanel({
               setTargetId('')
               setPickField('target')
               setEndWithPeriod(true)
+              setRecordPicker('root')
               setText(player.name)
               return
             }
@@ -372,36 +417,76 @@ export function EventLogPanel({
                 </label>
 
                 <p className="mt-3 mb-2 text-xs text-[var(--ink-muted)]">
-                  也可点选上方圆桌座位，把昵称插入正文
+                  {recordPicker === 'storyteller'
+                    ? '说书人待选择 — 点一项继续，或返回改选其他对象'
+                    : '也可点选上方圆桌座位，把昵称插入正文'}
                 </p>
 
-                <div className="grid grid-cols-2 gap-2">
-                  {RECORD_QUICK.map((opt) => (
+                {recordPicker === 'storyteller' ? (
+                  <div className="overflow-hidden rounded-md border border-[var(--line)]">
+                    {STORYTELLER_OPTIONS.map((opt, i) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => pickStorytellerOption(opt)}
+                        className={`flex min-h-12 w-full items-center px-3 py-2.5 text-left text-sm text-[var(--ink)] touch-manipulation ${
+                          i > 0 ? 'border-t border-[var(--line)]' : ''
+                        } ${
+                          opt.id === 'custom'
+                            ? 'bg-[var(--bg-elevated)] text-[var(--accent-soft)]'
+                            : 'bg-[var(--bg-deep)]/40'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
                     <button
-                      key={opt.id}
+                      type="button"
+                      onClick={() => setRecordPicker('root')}
+                      className="flex min-h-11 w-full items-center justify-center border-t border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--ink-muted)] touch-manipulation"
+                    >
+                      返回对象选择
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      {RECORD_QUICK.map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => {
+                            if (opt.id === 'storyteller') {
+                              openStorytellerPicker()
+                              return
+                            }
+                            insertIntoDraft(
+                              resolveQuickSnippet(match, opt.id),
+                            )
+                          }}
+                          className={`min-h-11 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2 py-2 text-sm touch-manipulation ${toneClass(opt.tone)}`}
+                        >
+                          {opt.label}
+                          {opt.id === 'minions' && (
+                            <span className="mt-0.5 block text-[10px] font-normal text-[var(--ink-muted)]">
+                              小怪宝等行为
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
                       type="button"
                       onClick={() =>
-                        insertIntoDraft(resolveQuickSnippet(match, opt.id))
+                        insertIntoDraft(buildFieldStatsReport(match))
                       }
-                      className={`min-h-11 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-2 py-2 text-sm touch-manipulation ${toneClass(opt.tone)}`}
+                      className="mt-2 min-h-11 w-full rounded-md border border-dashed border-[var(--line)] bg-transparent px-3 py-2 text-sm text-[var(--ink-muted)] touch-manipulation"
                     >
-                      {opt.label}
-                      {opt.id === 'minions' && (
-                        <span className="mt-0.5 block text-[10px] font-normal text-[var(--ink-muted)]">
-                          小怪宝等行为
-                        </span>
-                      )}
+                      插入场上信息统计报告
                     </button>
-                  ))}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => insertIntoDraft(buildFieldStatsReport(match))}
-                  className="mt-2 min-h-11 w-full rounded-md border border-dashed border-[var(--line)] bg-transparent px-3 py-2 text-sm text-[var(--ink-muted)] touch-manipulation"
-                >
-                  插入场上信息统计报告
-                </button>
+                  </>
+                )}
 
                 <button
                   type="button"
