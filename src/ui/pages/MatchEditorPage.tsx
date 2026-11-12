@@ -148,8 +148,6 @@ export function MatchEditorPage() {
       {tab === 'table' && (
         <div className="flex flex-col gap-4">
           <ScriptJsonImport
-            scriptName={match.script.name}
-            roleCount={match.script.roles.length}
             disabled={busy}
             onImportJson={async (text) => {
               const current = matchRef.current
