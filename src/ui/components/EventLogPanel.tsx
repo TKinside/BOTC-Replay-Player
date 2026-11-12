@@ -10,6 +10,13 @@ import {
   minionNames,
   townsfolkNames,
 } from '../lib/fieldStatsReport'
+import {
+  isPlayerRecordActionId,
+  PLAYER_RECORD_ACTIONS,
+  PlayerActionIcon,
+  type PlayerRecordAction,
+  type PlayerRecordActionId,
+} from '../lib/playerRecordActions'
 import { SeatingStatusPanel } from './SeatingStatusPanel'
 
 interface EventLogPanelProps {
@@ -22,6 +29,7 @@ interface EventLogPanelProps {
     phaseId: string
     actorPlayerIds?: string[]
     targetPlayerIds?: string[]
+    payload?: Record<string, unknown>
   }) => void
 }
 
@@ -60,7 +68,18 @@ const STORYTELLER_OPTIONS: { id: string; label: string }[] = [
   { id: 'custom', label: '自定义' },
 ]
 
-type RecordPicker = 'root' | 'storyteller'
+type RecordPicker = 'root' | 'storyteller' | 'player'
+
+function playerLogLabel(match: Match, player: Player): string {
+  const role = match.script.roles.find((r) => r.id === player.roleId)
+  return role?.name ? `${player.name}（${role.name}）` : player.name
+}
+
+function readLogIcons(payload: Record<string, unknown> | undefined): string[] {
+  const raw = payload?.logIcons
+  if (!Array.isArray(raw)) return []
+  return raw.filter(isPlayerRecordActionId)
+}
 
 function toneClass(tone: 'neutral' | 'good' | 'evil'): string {
   if (tone === 'good') return 'text-[var(--good)]'
@@ -158,6 +177,8 @@ export function EventLogPanel({
   const [pickField, setPickField] = useState<'target' | 'actor'>('target')
   const [endWithPeriod, setEndWithPeriod] = useState(true)
   const [recordPicker, setRecordPicker] = useState<RecordPicker>('root')
+  const [pendingPlayerId, setPendingPlayerId] = useState<string | null>(null)
+  const [draftIcons, setDraftIcons] = useState<PlayerRecordActionId[]>([])
 
   const eventsByPhase = useMemo(() => {
     return match.phases.map((phase) => ({
@@ -197,6 +218,8 @@ export function EventLogPanel({
     setPickField('target')
     setEndWithPeriod(true)
     setRecordPicker('root')
+    setPendingPlayerId(null)
+    setDraftIcons([])
   }
 
   function insertIntoDraft(snippet: string) {
@@ -205,7 +228,14 @@ export function EventLogPanel({
 
   function openStorytellerPicker() {
     setText((prev) => ensureStorytellerPrefix(prev))
+    setPendingPlayerId(null)
     setRecordPicker('storyteller')
+  }
+
+  function openPlayerActionPicker(player: Player) {
+    setPendingPlayerId(player.id)
+    setTargetId(player.id)
+    setRecordPicker('player')
   }
 
   function pickStorytellerOption(opt: (typeof STORYTELLER_OPTIONS)[number]) {
@@ -223,6 +253,33 @@ export function EventLogPanel({
     setRecordPicker('root')
   }
 
+  function pickPlayerAction(opt: PlayerRecordAction) {
+    const player = pendingPlayerId
+      ? match.players.find((p) => p.id === pendingPlayerId)
+      : undefined
+    if (!player) {
+      setRecordPicker('root')
+      setPendingPlayerId(null)
+      return
+    }
+    const who = playerLogLabel(match, player)
+    if (opt.id === 'custom') {
+      insertIntoDraft(who)
+      setDraftIcons((prev) =>
+        prev.includes('custom') ? prev : [...prev, 'custom'],
+      )
+      setRecordPicker('root')
+      setPendingPlayerId(null)
+      return
+    }
+    insertIntoDraft(`${who}${opt.label}`)
+    setDraftIcons((prev) =>
+      prev.includes(opt.id) ? prev : [...prev, opt.id],
+    )
+    setRecordPicker('root')
+    setPendingPlayerId(null)
+  }
+
   function submitComposer() {
     if (!composer) return
     const raw = text.trim()
@@ -237,10 +294,21 @@ export function EventLogPanel({
       text: finalText,
       actorPlayerIds: actorId ? [actorId] : undefined,
       targetPlayerIds: targetId ? [targetId] : undefined,
+      payload:
+        composer.mode === 'record' && draftIcons.length > 0
+          ? { logIcons: draftIcons }
+          : undefined,
     })
     setComposer(null)
     setText('')
+    setDraftIcons([])
+    setPendingPlayerId(null)
+    setRecordPicker('root')
   }
+
+  const pendingPlayer = pendingPlayerId
+    ? match.players.find((p) => p.id === pendingPlayerId)
+    : undefined
 
   return (
     <div className="flex flex-col gap-0">
@@ -250,7 +318,7 @@ export function EventLogPanel({
           selectedPlayerId={selectedPlayerId || undefined}
           pickFieldLabel={
             composer?.mode === 'record'
-              ? '插入昵称'
+              ? '选择玩家动作'
               : pickField === 'actor'
                 ? '行动者'
                 : '目标'
@@ -262,15 +330,15 @@ export function EventLogPanel({
               if (!phaseId || !player) return
               setComposer({ phaseId, mode: 'record' })
               setActorId('')
-              setTargetId('')
               setPickField('target')
               setEndWithPeriod(true)
-              setRecordPicker('root')
-              setText(player.name)
+              setDraftIcons([])
+              setText('')
+              openPlayerActionPicker(player)
               return
             }
             if (composer.mode === 'record') {
-              if (player) insertIntoDraft(player.name)
+              if (player) openPlayerActionPicker(player)
               return
             }
             if (pickField === 'actor') setActorId(playerId)
@@ -305,18 +373,28 @@ export function EventLogPanel({
 
               {events.length > 0 && (
                 <ul className="mb-3 flex flex-col gap-1.5">
-                  {events.map((event) => (
-                    <li
-                      key={event.id}
-                      className="rounded-md bg-[var(--bg-deep)]/60 px-3 py-2.5 text-sm leading-snug"
-                    >
-                      <span className="mr-2 text-xs text-[var(--accent-soft)]">
-                        {EventTypeRegistry.get(event.typeId)?.label ??
-                          event.typeId}
-                      </span>
-                      {event.text}
-                    </li>
-                  ))}
+                  {events.map((event) => {
+                    const icons = readLogIcons(event.payload)
+                    return (
+                      <li
+                        key={event.id}
+                        className="rounded-md bg-[var(--bg-deep)]/60 px-3 py-2.5 text-sm leading-snug"
+                      >
+                        <span className="mr-2 inline-flex items-center gap-1 align-middle text-xs text-[var(--accent-soft)]">
+                          {icons.map((iconId) => (
+                            <PlayerActionIcon
+                              key={`${event.id}-${iconId}`}
+                              id={iconId}
+                              className="size-3.5 text-[var(--accent-soft)]"
+                            />
+                          ))}
+                          {EventTypeRegistry.get(event.typeId)?.label ??
+                            event.typeId}
+                        </span>
+                        {event.text}
+                      </li>
+                    )
+                  })}
                 </ul>
               )}
 
@@ -406,6 +484,25 @@ export function EventLogPanel({
                     placeholder="待选择。"
                   />
                 </label>
+                {draftIcons.length > 0 && (
+                  <div
+                    className="mt-2 flex flex-wrap items-center gap-1.5"
+                    aria-label="已选图标"
+                  >
+                    {draftIcons.map((iconId) => (
+                      <span
+                        key={iconId}
+                        className="inline-flex items-center gap-1 rounded border border-[var(--line)] bg-[var(--bg-elevated)] px-1.5 py-1 text-[var(--ink)]"
+                        title={
+                          PLAYER_RECORD_ACTIONS.find((a) => a.id === iconId)
+                            ?.label ?? iconId
+                        }
+                      >
+                        <PlayerActionIcon id={iconId} />
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <label className="mt-2 flex items-center gap-2 text-xs text-[var(--ink-muted)]">
                   <input
                     type="checkbox"
@@ -419,7 +516,9 @@ export function EventLogPanel({
                 <p className="mt-3 mb-2 text-xs text-[var(--ink-muted)]">
                   {recordPicker === 'storyteller'
                     ? '说书人待选择 — 点一项继续，或返回改选其他对象'
-                    : '也可点选上方圆桌座位，把昵称插入正文'}
+                    : recordPicker === 'player' && pendingPlayer
+                      ? `${playerLogLabel(match, pendingPlayer)}待选择 — 点一项写入记录（含图标）`
+                      : '点选上方圆桌座位，为该玩家选择动作'}
                 </p>
 
                 {recordPicker === 'storyteller' ? (
@@ -443,6 +542,38 @@ export function EventLogPanel({
                     <button
                       type="button"
                       onClick={() => setRecordPicker('root')}
+                      className="flex min-h-11 w-full items-center justify-center border-t border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--ink-muted)] touch-manipulation"
+                    >
+                      返回对象选择
+                    </button>
+                  </div>
+                ) : recordPicker === 'player' ? (
+                  <div className="overflow-hidden rounded-md border border-[var(--line)]">
+                    {PLAYER_RECORD_ACTIONS.map((opt, i) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => pickPlayerAction(opt)}
+                        className={`flex min-h-12 w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-[var(--ink)] touch-manipulation ${
+                          i > 0 ? 'border-t border-[var(--line)]' : ''
+                        } bg-[var(--bg-deep)]/40`}
+                      >
+                        <PlayerActionIcon
+                          id={opt.id}
+                          className="size-4 shrink-0 text-[var(--ink-muted)]"
+                        />
+                        <span className="min-w-0 flex-1">{opt.label}</span>
+                        <span className="shrink-0 text-xs text-[var(--ink-muted)]">
+                          {opt.tag}
+                        </span>
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRecordPicker('root')
+                        setPendingPlayerId(null)
+                      }}
                       className="flex min-h-11 w-full items-center justify-center border-t border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--ink-muted)] touch-manipulation"
                     >
                       返回对象选择
