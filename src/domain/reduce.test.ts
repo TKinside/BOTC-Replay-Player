@@ -5,7 +5,10 @@ import {
   addPlayers,
   advancePhase,
   assignRole,
+  formatPhaseEnLabel,
+  formatPhaseLabel,
   parsePlayerNames,
+  removePhase,
 } from './matchMutations'
 import type { Match } from './types'
 
@@ -126,5 +129,55 @@ describe('domain/matchMutations', () => {
       { seat: 2, name: '夜枭' },
     ])
     expect(addPlayers(match, [])).toBe(match)
+  })
+
+  it('formatPhaseLabel / En match mini-program style titles', () => {
+    expect(formatPhaseLabel('setup', 0)).toBe('准备阶段')
+    expect(formatPhaseEnLabel('setup', 0)).toBe('Setup')
+    expect(formatPhaseLabel('night', 1)).toBe('第 1 夜')
+    expect(formatPhaseEnLabel('night', 1)).toBe('Night 1')
+    expect(formatPhaseLabel('day', 1)).toBe('第 1 天')
+    expect(formatPhaseEnLabel('day', 1)).toBe('Day 1')
+  })
+
+  it('removePhase only drops the latest phase and its events', () => {
+    let match = emptyMatch()
+    match = {
+      ...match,
+      phases: [
+        { id: 'setup', kind: 'setup', index: 0, label: '准备阶段' },
+        { id: 'night-1', kind: 'night', index: 1, label: '第 1 夜' },
+        { id: 'day-1', kind: 'day', index: 1, label: '第 1 天' },
+      ],
+      events: [
+        {
+          id: 'e1',
+          typeId: 'custom',
+          phaseId: 'night-1',
+          at: '2026-01-01T01:00:00.000Z',
+          payload: {},
+          text: '夜事件',
+        },
+        {
+          id: 'e2',
+          typeId: 'custom',
+          phaseId: 'day-1',
+          at: '2026-01-01T02:00:00.000Z',
+          payload: {},
+          text: '昼事件',
+        },
+      ],
+    }
+
+    expect(removePhase(match, 'night-1')).toBe(match)
+    expect(removePhase(match, 'missing')).toBe(match)
+
+    match = removePhase(match, 'day-1')
+    expect(match.phases.map((p) => p.id)).toEqual(['setup', 'night-1'])
+    expect(match.events.map((e) => e.id)).toEqual(['e1'])
+
+    match = removePhase(match, 'night-1')
+    expect(match.phases.map((p) => p.id)).toEqual(['setup'])
+    expect(removePhase(match, 'setup')).toBe(match)
   })
 })

@@ -34,6 +34,8 @@ export {
   removePlayer,
   assignRole,
   advancePhase,
+  removePhase,
   setScript,
   formatPhaseLabel,
+  formatPhaseEnLabel,
 } from './matchMutations'

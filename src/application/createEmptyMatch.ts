@@ -27,7 +27,7 @@ export function createEmptyMatch(partial?: {
       allowAliases: false,
     },
     players: [],
-    phases: [{ id: newId('phase'), kind: 'setup', index: 0, label: '准备' }],
+    phases: [{ id: newId('phase'), kind: 'setup', index: 0, label: '准备阶段' }],
     events: [],
     perspective: 'storyteller-omniscient',
   }

@@ -4,6 +4,7 @@ import {
   advancePhase as domainAdvancePhase,
   appendEvent,
   assignRole as domainAssignRole,
+  removePhase as domainRemovePhase,
   removePlayer as domainRemovePlayer,
   setScript,
   touchMatch,
@@ -122,18 +123,25 @@ export class MatchService {
     return this.save(domainAdvancePhase(match))
   }
 
+  async removePhase(match: Match, phaseId: string): Promise<Match> {
+    return this.save(domainRemovePhase(match, phaseId))
+  }
+
   async recordEvent(
     match: Match,
     input: {
       typeId: string
       text?: string
+      phaseId?: string
       actorPlayerIds?: string[]
       targetPlayerIds?: string[]
       payload?: Record<string, unknown>
     },
   ): Promise<Match> {
-    const phase = match.phases[match.phases.length - 1]
-    if (!phase) throw new Error('对局没有阶段')
+    const phase = input.phaseId
+      ? match.phases.find((p) => p.id === input.phaseId)
+      : match.phases[match.phases.length - 1]
+    if (!phase) throw new Error(input.phaseId ? '阶段不存在' : '对局没有阶段')
 
     const typeDef = EventTypeRegistry.get(input.typeId)
     const statusApply = buildStatusPatches(input.typeId, input.targetPlayerIds)
