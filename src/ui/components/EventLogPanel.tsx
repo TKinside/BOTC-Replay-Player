@@ -23,6 +23,7 @@ interface EventLogPanelProps {
   match: Match
   onAdvancePhase: () => void
   onRemovePhase: (phaseId: string) => void
+  onRemoveEvent: (eventId: string) => void
   onRecordEvent: (input: {
     typeId: string
     text?: string
@@ -165,6 +166,7 @@ export function EventLogPanel({
   match,
   onAdvancePhase,
   onRemovePhase,
+  onRemoveEvent,
   onRecordEvent,
 }: EventLogPanelProps) {
   const [composer, setComposer] = useState<{
@@ -378,20 +380,39 @@ export function EventLogPanel({
                     return (
                       <li
                         key={event.id}
-                        className="rounded-md bg-[var(--bg-deep)]/60 px-3 py-2.5 text-sm leading-snug"
+                        className="flex items-start gap-2 rounded-md bg-[var(--bg-deep)]/60 px-3 py-2.5 text-sm leading-snug"
                       >
-                        <span className="mr-2 inline-flex items-center gap-1 align-middle text-xs text-[var(--accent-soft)]">
-                          {icons.map((iconId) => (
-                            <PlayerActionIcon
-                              key={`${event.id}-${iconId}`}
-                              id={iconId}
-                              className="size-3.5 text-[var(--accent-soft)]"
-                            />
-                          ))}
-                          {EventTypeRegistry.get(event.typeId)?.label ??
-                            event.typeId}
-                        </span>
-                        {event.text}
+                        <div className="min-w-0 flex-1">
+                          <span className="mr-2 inline-flex items-center gap-1 align-middle text-xs text-[var(--accent-soft)]">
+                            {icons.map((iconId) => (
+                              <PlayerActionIcon
+                                key={`${event.id}-${iconId}`}
+                                id={iconId}
+                                className="size-3.5 text-[var(--accent-soft)]"
+                              />
+                            ))}
+                            {EventTypeRegistry.get(event.typeId)?.label ??
+                              event.typeId}
+                          </span>
+                          {event.text}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (
+                              !confirm(
+                                '删除这条记录？相关状态会按剩余事件重新计算。',
+                              )
+                            ) {
+                              return
+                            }
+                            onRemoveEvent(event.id)
+                          }}
+                          className="min-h-9 shrink-0 rounded-md px-2 text-xs text-red-300 touch-manipulation"
+                          aria-label="删除这条记录"
+                        >
+                          删除
+                        </button>
                       </li>
                     )
                   })}
