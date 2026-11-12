@@ -9,6 +9,7 @@ type Props = {
 
 /** Seating-area controls: quick single add + paste-friendly batch add. */
 export function AddPlayersPanel({ busy, onAddOne, onAddBatch }: Props) {
+  const [singleName, setSingleName] = useState('')
   const [batchText, setBatchText] = useState('')
   const previewNames = useMemo(
     () => parsePlayerNames(batchText),
@@ -17,45 +18,41 @@ export function AddPlayersPanel({ busy, onAddOne, onAddBatch }: Props) {
 
   return (
     <div className="flex flex-col gap-3">
-      <form
-        className="flex gap-2"
-        onSubmit={(e) => {
-          e.preventDefault()
-          const fd = new FormData(e.currentTarget)
-          const name = String(fd.get('playerName') ?? '').trim()
-          if (!name) return
-          const form = e.currentTarget
-          onAddOne(name)
-          form.reset()
-        }}
-      >
+      <div className="flex gap-2">
         <input
-          name="playerName"
+          value={singleName}
+          onChange={(e) => setSingleName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') return
+            e.preventDefault()
+            const name = singleName.trim()
+            if (!name || busy) return
+            onAddOne(name)
+            setSingleName('')
+          }}
           className="min-h-11 min-w-0 flex-1 rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-3 py-2 text-base sm:text-sm"
           placeholder="新玩家昵称"
           autoComplete="off"
           enterKeyHint="done"
           disabled={busy}
-          required
+          aria-label="新玩家昵称"
         />
         <button
-          type="submit"
-          disabled={busy}
+          type="button"
+          disabled={busy || !singleName.trim()}
+          onClick={() => {
+            const name = singleName.trim()
+            if (!name) return
+            onAddOne(name)
+            setSingleName('')
+          }}
           className="min-h-11 rounded-md bg-[var(--accent)] px-3 py-2 text-sm text-white touch-manipulation disabled:opacity-60"
         >
           加人
         </button>
-      </form>
+      </div>
 
-      <form
-        className="flex flex-col gap-2"
-        onSubmit={(e) => {
-          e.preventDefault()
-          if (previewNames.length === 0) return
-          onAddBatch(previewNames)
-          setBatchText('')
-        }}
-      >
+      <div className="flex flex-col gap-2">
         <label className="text-sm text-[var(--ink-muted)]" htmlFor="batch-names">
           批量加人（每行一个昵称，也可用顿号、逗号或空格分隔）
         </label>
@@ -74,13 +71,18 @@ export function AddPlayersPanel({ busy, onAddOne, onAddBatch }: Props) {
             : '粘贴或输入后可预览人数'}
         </p>
         <button
-          type="submit"
+          type="button"
           disabled={busy || previewNames.length === 0}
+          onClick={() => {
+            if (previewNames.length === 0) return
+            onAddBatch(previewNames)
+            setBatchText('')
+          }}
           className="min-h-11 w-full rounded-md bg-[var(--accent)] px-3 py-2 text-sm text-white touch-manipulation disabled:opacity-60"
         >
           批量加入
         </button>
-      </form>
+      </div>
     </div>
   )
 }
