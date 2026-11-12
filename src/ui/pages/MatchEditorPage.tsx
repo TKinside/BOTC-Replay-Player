@@ -122,7 +122,10 @@ export function MatchEditorPage() {
           <button
             key={id}
             type="button"
-            onClick={() => setTab(id)}
+            onClick={() => {
+              setTab(id)
+              setStatus(null)
+            }}
             className={`min-h-11 shrink-0 px-3 py-2 text-sm touch-manipulation ${
               tab === id
                 ? 'border-b-2 border-[var(--accent)] text-[var(--ink)]'
