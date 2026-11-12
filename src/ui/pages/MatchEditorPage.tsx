@@ -151,19 +151,27 @@ export function MatchEditorPage() {
             disabled={busy}
             onImportJson={async (text) => {
               const current = matchRef.current
-              if (!current) return '对局未加载'
+              if (!current) {
+                return { summary: '对局未加载', failed: true }
+              }
               const { match: next, parse } =
                 await service.importScriptIntoMatch(current, text)
-              if (!parse.ok) return parse.errors.join('\n')
+              if (!parse.ok) {
+                return {
+                  summary: '脚本 JSON 无法解析',
+                  warnings: parse.errors,
+                  failed: true,
+                }
+              }
               if (next) {
                 matchRef.current = next
                 update(next)
               }
-              const warn =
-                parse.warnings.length > 0
-                  ? `\n警告：\n${parse.warnings.join('\n')}`
-                  : ''
-              return `已导入「${parse.snapshot.name}」（${parse.snapshot.roles.length} 角色）${warn}`
+              return {
+                summary: `已导入「${parse.snapshot.name}」（${parse.snapshot.roles.length} 角色）`,
+                warnings:
+                  parse.warnings.length > 0 ? parse.warnings : undefined,
+              }
             }}
           >
             <SeatingCircle
