@@ -169,7 +169,9 @@ export function MatchEditorPage() {
             <SeatingCircle
               match={match}
               selectedPlayerId={selectedPlayerId}
-              onSelectPlayer={setSelectedPlayerId}
+              onSelectPlayer={(id) =>
+                setSelectedPlayerId((cur) => (cur === id ? undefined : id))
+              }
             />
           </ScriptJsonImport>
 
@@ -192,10 +194,11 @@ export function MatchEditorPage() {
             }}
           />
 
-          <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-panel)] p-3">
+          {selectedPlayer && (
             <PlayerEditor
               match={match}
               player={selectedPlayer}
+              onClose={() => setSelectedPlayerId(undefined)}
               onRename={(playerId, name) =>
                 void run((current) =>
                   service.updatePlayer(current, playerId, { name }),
@@ -214,7 +217,7 @@ export function MatchEditorPage() {
                 })
               }
             />
-          </div>
+          )}
         </div>
       )}
 
