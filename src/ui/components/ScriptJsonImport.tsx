@@ -62,17 +62,15 @@ export function ScriptJsonImport({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="relative mx-auto w-full max-w-[22rem]">
-        {children}
-
-        {showTip && (
+      {showTip && (
+        <div className="mx-auto flex w-full max-w-[22rem] justify-start">
           <button
             type="button"
             onClick={() => setDetailOpen(true)}
-            className={`absolute left-0 top-0 z-20 max-w-[9.5rem] truncate rounded border px-2 py-1 text-[11px] leading-snug shadow-sm backdrop-blur-sm touch-manipulation ${
+            className={`min-h-7 shrink-0 rounded border px-1.5 py-0.5 text-[10px] leading-none shadow-sm touch-manipulation ${
               feedback?.failed
-                ? 'border-red-400/70 bg-[var(--bg-deep)]/95 text-red-300'
-                : 'border-[var(--accent)] bg-[var(--bg-deep)]/95 text-[var(--accent-soft)]'
+                ? 'border-red-400/70 bg-[var(--bg-elevated)] text-red-300'
+                : 'border-[var(--accent)] bg-[var(--bg-elevated)] text-[var(--accent-soft)]'
             }`}
             aria-label={
               feedback?.failed
@@ -81,11 +79,13 @@ export function ScriptJsonImport({
             }
             title={feedback?.summary}
           >
-            {feedback?.failed
-              ? '导入失败 · 查看'
-              : `导入提示 · ${warningCount}`}
+            {feedback?.failed ? `失败·${warningCount || '看'}` : `提示·${warningCount}`}
           </button>
-        )}
+        </div>
+      )}
+
+      <div className="relative mx-auto w-full max-w-[22rem]">
+        {children}
 
         <button
           type="button"
