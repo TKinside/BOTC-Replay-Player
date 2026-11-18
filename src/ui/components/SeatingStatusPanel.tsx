@@ -49,7 +49,7 @@ export function SeatingStatusPanel({
   return (
     <section
       aria-label="圆桌状态"
-      className="sticky top-11 z-10 -mx-1 border-b border-[var(--line)] bg-[var(--bg-deep)]/95 px-1 pb-2 pt-1 backdrop-blur-sm"
+      className="sticky top-11 z-10 -mx-1 border-b border-[var(--line)] bg-[var(--bg-deep)]/95 px-1 pb-2 pt-1 backdrop-blur-sm lg:top-14 lg:mx-0 lg:max-h-[calc(100dvh-5rem)] lg:overflow-y-auto lg:rounded-lg lg:border lg:border-[var(--line)] lg:bg-[var(--bg-panel)] lg:px-3 lg:py-3 lg:backdrop-blur-none"
     >
       <div className="mb-1.5 flex items-baseline justify-between gap-2 px-0.5">
         <h3 className="text-sm font-medium text-[var(--ink)]">圆桌状态</h3>
@@ -57,7 +57,7 @@ export function SeatingStatusPanel({
           {players.length} 人 · 点选填入{pickFieldLabel}
         </p>
       </div>
-      <ul className="grid max-h-[min(42vh,20rem)] grid-cols-2 gap-1.5 overflow-y-auto overscroll-contain pr-0.5">
+      <ul className="grid max-h-[min(42vh,20rem)] grid-cols-2 gap-1.5 overflow-y-auto overscroll-contain pr-0.5 lg:max-h-none lg:grid-cols-1 xl:grid-cols-2">
         {players.map((player) => (
           <SeatStatusChip
             key={player.id}

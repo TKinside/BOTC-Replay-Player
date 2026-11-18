@@ -248,12 +248,12 @@ export function MatchEditorPage() {
       )}
 
       {tab === 'export' && (
-        <div className="flex flex-col gap-3 rounded-lg border border-[var(--line)] bg-[var(--bg-panel)] p-4">
+        <div className="flex flex-col gap-3 rounded-lg border border-[var(--line)] bg-[var(--bg-panel)] p-4 lg:max-w-2xl">
           <h3 className="text-base font-medium">长图导出</h3>
           <p className="text-sm text-[var(--ink-muted)]">
             生成包含圆桌昵称与分阶段日志的长图。昵称明文保留，无打码选项。
           </p>
-          <ul className="text-sm text-[var(--ink-muted)]">
+          <ul className="grid gap-1 text-sm text-[var(--ink-muted)] sm:grid-cols-2 lg:grid-cols-3">
             {match.players.map((p) => (
               <li key={p.id}>
                 {p.seatIndex + 1}. {p.name}
@@ -264,7 +264,7 @@ export function MatchEditorPage() {
             type="button"
             disabled={busy}
             onClick={() => void exportImage()}
-            className="rounded-md bg-[var(--accent)] px-3 py-2 text-sm text-white disabled:opacity-60"
+            className="rounded-md bg-[var(--accent)] px-3 py-2 text-sm text-white disabled:opacity-60 lg:w-fit"
           >
             导出长图 PNG
           </button>
