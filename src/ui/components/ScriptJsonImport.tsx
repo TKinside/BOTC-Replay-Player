@@ -63,7 +63,7 @@ export function ScriptJsonImport({
   return (
     <div className="flex flex-col gap-2">
       {showTip && (
-        <div className="mx-auto flex w-full max-w-[22rem] justify-start">
+        <div className="mx-auto flex w-full max-w-[22rem] justify-start lg:max-w-[28rem]">
           <button
             type="button"
             onClick={() => setDetailOpen(true)}
@@ -84,7 +84,7 @@ export function ScriptJsonImport({
         </div>
       )}
 
-      <div className="relative mx-auto w-full max-w-[22rem]">
+      <div className="relative mx-auto w-full max-w-[22rem] lg:max-w-[28rem]">
         {children}
 
         <button
@@ -118,7 +118,7 @@ export function ScriptJsonImport({
       {feedback && !showTip && (
         <p
           role="status"
-          className="mx-auto w-full max-w-[22rem] text-center text-sm text-[var(--ink-muted)]"
+          className="mx-auto w-full max-w-[22rem] text-center text-sm text-[var(--ink-muted)] lg:max-w-[28rem]"
         >
           {feedback.summary}
         </p>

@@ -40,7 +40,7 @@ export function SeatingCircle({
   return (
     <div
       className={`relative mx-auto aspect-square w-full touch-manipulation ${
-        compact ? 'max-w-[20rem]' : 'max-w-[22rem]'
+        compact ? 'max-w-[20rem] lg:max-w-[24rem]' : 'max-w-[22rem] lg:max-w-[28rem]'
       }`}
       style={{ minHeight: compact ? 240 : 280 }}
     >

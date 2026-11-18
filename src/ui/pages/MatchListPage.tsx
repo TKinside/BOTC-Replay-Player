@@ -73,7 +73,7 @@ export function MatchListPage() {
           type="button"
           disabled={creating}
           onClick={() => void createMatch()}
-          className="mb-5 min-h-12 w-full rounded-xl bg-[var(--bg-elevated)] px-4 py-3.5 text-base font-medium text-[var(--ink)] ring-1 ring-[var(--line)] touch-manipulation disabled:opacity-60"
+          className="mb-5 min-h-12 w-full rounded-xl bg-[var(--bg-elevated)] px-4 py-3.5 text-base font-medium text-[var(--ink)] ring-1 ring-[var(--line)] touch-manipulation disabled:opacity-60 lg:w-auto lg:min-w-[12rem]"
         >
           {creating ? '创建中…' : '+ 创建记录'}
         </button>
@@ -89,7 +89,7 @@ export function MatchListPage() {
             还没有对局。点上方「+ 创建记录」开始，再在圆桌导入脚本 JSON。
           </div>
         ) : (
-          <ul className="flex flex-col gap-3">
+          <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
             {matches.map((match) => (
               <MatchCard
                 key={match.id}

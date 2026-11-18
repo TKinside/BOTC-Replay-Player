@@ -313,8 +313,8 @@ export function EventLogPanel({
     : undefined
 
   return (
-    <div className="flex flex-col gap-0">
-      <div className="mb-3">
+    <div className="flex flex-col gap-0 lg:grid lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)] lg:items-start lg:gap-5 xl:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]">
+      <div className="mb-3 lg:mb-0">
         <SeatingStatusPanel
           match={match}
           selectedPlayerId={selectedPlayerId || undefined}
@@ -349,113 +349,115 @@ export function EventLogPanel({
         />
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-[var(--line)]">
-        {eventsByPhase.map(({ phase, events }, index) => {
-          const isLast = phase.id === lastPhaseId
-          const zh = formatPhaseLabel(phase.kind, phase.index)
-          const en = formatPhaseEnLabel(phase.kind, phase.index)
-          const striped = index % 2 === 1
+      <div className="min-w-0">
+        <div className="overflow-hidden rounded-lg border border-[var(--line)]">
+          {eventsByPhase.map(({ phase, events }, index) => {
+            const isLast = phase.id === lastPhaseId
+            const zh = formatPhaseLabel(phase.kind, phase.index)
+            const en = formatPhaseEnLabel(phase.kind, phase.index)
+            const striped = index % 2 === 1
 
-          return (
-            <section
-              key={phase.id}
-              className={`border-b border-[var(--line)] px-3 py-4 last:border-b-0 ${
-                striped ? 'bg-[var(--bg-elevated)]' : 'bg-[var(--bg-panel)]'
-              }`}
-            >
-              <div className="mb-3 flex items-center gap-2">
-                <PhaseIcon kind={phase.kind} />
-                <h3 className="text-lg font-medium leading-tight text-[var(--ink)]">
-                  {zh}{' '}
-                  <span className="text-sm font-normal text-[var(--ink-muted)]">
-                    {en}
-                  </span>
-                </h3>
-              </div>
+            return (
+              <section
+                key={phase.id}
+                className={`border-b border-[var(--line)] px-3 py-4 last:border-b-0 ${
+                  striped ? 'bg-[var(--bg-elevated)]' : 'bg-[var(--bg-panel)]'
+                }`}
+              >
+                <div className="mb-3 flex items-center gap-2">
+                  <PhaseIcon kind={phase.kind} />
+                  <h3 className="text-lg font-medium leading-tight text-[var(--ink)]">
+                    {zh}{' '}
+                    <span className="text-sm font-normal text-[var(--ink-muted)]">
+                      {en}
+                    </span>
+                  </h3>
+                </div>
 
-              {events.length > 0 && (
-                <ul className="mb-3 flex flex-col gap-1.5">
-                  {events.map((event) => {
-                    const icons = readLogIcons(event.payload)
-                    return (
-                      <li
-                        key={event.id}
-                        className="flex items-start gap-2 rounded-md bg-[var(--bg-deep)]/60 px-3 py-2.5 text-sm leading-snug"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <span className="mr-2 inline-flex items-center gap-1 align-middle text-xs text-[var(--accent-soft)]">
-                            {icons.map((iconId) => (
-                              <PlayerActionIcon
-                                key={`${event.id}-${iconId}`}
-                                id={iconId}
-                                className="size-3.5 text-[var(--accent-soft)]"
-                              />
-                            ))}
-                            {EventTypeRegistry.get(event.typeId)?.label ??
-                              event.typeId}
-                          </span>
-                          {event.text}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (
-                              !confirm(
-                                '删除这条记录？相关状态会按剩余事件重新计算。',
-                              )
-                            ) {
-                              return
-                            }
-                            onRemoveEvent(event.id)
-                          }}
-                          className="min-h-9 shrink-0 rounded-md px-2 text-xs text-red-300 touch-manipulation"
-                          aria-label="删除这条记录"
+                {events.length > 0 && (
+                  <ul className="mb-3 flex flex-col gap-1.5">
+                    {events.map((event) => {
+                      const icons = readLogIcons(event.payload)
+                      return (
+                        <li
+                          key={event.id}
+                          className="flex items-start gap-2 rounded-md bg-[var(--bg-deep)]/60 px-3 py-2.5 text-sm leading-snug"
                         >
-                          删除
-                        </button>
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
+                          <div className="min-w-0 flex-1">
+                            <span className="mr-2 inline-flex items-center gap-1 align-middle text-xs text-[var(--accent-soft)]">
+                              {icons.map((iconId) => (
+                                <PlayerActionIcon
+                                  key={`${event.id}-${iconId}`}
+                                  id={iconId}
+                                  className="size-3.5 text-[var(--accent-soft)]"
+                                />
+                              ))}
+                              {EventTypeRegistry.get(event.typeId)?.label ??
+                                event.typeId}
+                            </span>
+                            {event.text}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (
+                                !confirm(
+                                  '删除这条记录？相关状态会按剩余事件重新计算。',
+                                )
+                              ) {
+                                return
+                              }
+                              onRemoveEvent(event.id)
+                            }}
+                            className="min-h-9 shrink-0 rounded-md px-2 text-xs text-red-300 touch-manipulation"
+                            aria-label="删除这条记录"
+                          >
+                            删除
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
 
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => openComposer(phase.id, 'record')}
-                  className="min-h-10 rounded-md border border-[var(--line)] bg-transparent px-3 py-2 text-sm text-[var(--ink)] touch-manipulation"
-                >
-                  添加记录
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openComposer(phase.id, 'custom')}
-                  className="min-h-10 rounded-md border border-[var(--line)] bg-transparent px-3 py-2 text-sm text-[var(--ink)] touch-manipulation"
-                >
-                  添加自定义文本
-                </button>
-                {isLast && canDeleteLast && (
+                <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => onRemovePhase(phase.id)}
-                    className="min-h-10 rounded-md border border-[var(--line)] bg-transparent px-3 py-2 text-sm text-red-400 touch-manipulation"
+                    onClick={() => openComposer(phase.id, 'record')}
+                    className="min-h-10 rounded-md border border-[var(--line)] bg-transparent px-3 py-2 text-sm text-[var(--ink)] touch-manipulation"
                   >
-                    删除本阶段
+                    添加记录
                   </button>
-                )}
-              </div>
-            </section>
-          )
-        })}
-      </div>
+                  <button
+                    type="button"
+                    onClick={() => openComposer(phase.id, 'custom')}
+                    className="min-h-10 rounded-md border border-[var(--line)] bg-transparent px-3 py-2 text-sm text-[var(--ink)] touch-manipulation"
+                  >
+                    添加自定义文本
+                  </button>
+                  {isLast && canDeleteLast && (
+                    <button
+                      type="button"
+                      onClick={() => onRemovePhase(phase.id)}
+                      className="min-h-10 rounded-md border border-[var(--line)] bg-transparent px-3 py-2 text-sm text-red-400 touch-manipulation"
+                    >
+                      删除本阶段
+                    </button>
+                  )}
+                </div>
+              </section>
+            )
+          })}
+        </div>
 
-      <button
-        type="button"
-        onClick={onAdvancePhase}
-        className="mt-4 min-h-12 w-full rounded-xl bg-[var(--bg-elevated)] px-4 py-3 text-base font-medium text-[var(--ink)] ring-1 ring-[var(--line)] touch-manipulation"
-      >
-        + 添加游戏阶段
-      </button>
+        <button
+          type="button"
+          onClick={onAdvancePhase}
+          className="mt-4 min-h-12 w-full rounded-xl bg-[var(--bg-elevated)] px-4 py-3 text-base font-medium text-[var(--ink)] ring-1 ring-[var(--line)] touch-manipulation lg:w-auto lg:min-w-[14rem]"
+        >
+          + 添加游戏阶段
+        </button>
+      </div>
 
       {composer && activePhase && (
         <div
