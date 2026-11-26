@@ -37,7 +37,7 @@ export function MatchEditorPage() {
   if (error || !match) {
     return (
       <div className="flex flex-col gap-3">
-        <p className="text-sm text-red-300">{error ?? '对局不存在'}</p>
+        <p className="text-sm text-[var(--danger)]">{error ?? '对局不存在'}</p>
         <Link to="/" className="text-sm text-[var(--accent-soft)]">
           ← 返回列表
         </Link>
@@ -186,16 +186,12 @@ export function MatchEditorPage() {
           <AddPlayersPanel
             busy={busy}
             onAddOne={(name) => {
-              void run(async (current) => {
-                const next = await service.addPlayer(current, name)
-                setSelectedPlayerId(next.players.at(-1)?.id)
-                return next
-              })
+              // Add only — do not auto-open the seat edit / role modal.
+              void run((current) => service.addPlayer(current, name))
             }}
             onAddBatch={(names) => {
               void run(async (current) => {
                 const next = await service.addPlayers(current, names)
-                setSelectedPlayerId(next.players.at(-1)?.id)
                 setStatus(`已加入 ${names.length} 名玩家`)
                 return next
               })
