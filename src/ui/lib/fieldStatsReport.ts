@@ -1,4 +1,5 @@
 import type { FactionId, Match } from '@/domain'
+import { playerMentionToken } from '@/lib/customTextCompose'
 import { FACTION_LABEL } from './factionColor'
 
 const GOOD: FactionId[] = ['townsfolk', 'outsider']
@@ -8,6 +9,18 @@ function roleFaction(match: Match, playerId: string): FactionId | undefined {
   const player = match.players.find((p) => p.id === playerId)
   if (!player?.roleId) return undefined
   return match.script.roles.find((r) => r.id === player.roleId)?.faction
+}
+
+/** Player refs for log insertion — `@#id` so preview/log can show icon + name(role). */
+function refsForFactions(match: Match, factions: FactionId[]): string[] {
+  return match.players
+    .slice()
+    .sort((a, b) => a.seatIndex - b.seatIndex)
+    .filter((p) => {
+      const f = roleFaction(match, p.id)
+      return f != null && factions.includes(f)
+    })
+    .map((p) => playerMentionToken(p.id))
 }
 
 function namesForFactions(match: Match, factions: FactionId[]): string[] {
@@ -37,14 +50,14 @@ export function buildFieldStatsReport(match: Match): string {
     'minion',
     'demon',
   ] as FactionId[]) {
-    const names = namesForFactions(match, [faction])
-    if (names.length === 0) continue
+    const refs = refsForFactions(match, [faction])
+    if (refs.length === 0) continue
     lines.push(
-      `${FACTION_LABEL[faction]}（${names.length}）：${names.join('、')}。`,
+      `${FACTION_LABEL[faction]}（${refs.length}）：${refs.join('、')}。`,
     )
   }
 
-  const travelers = namesForFactions(match, ['traveler'])
+  const travelers = refsForFactions(match, ['traveler'])
   if (travelers.length > 0) {
     lines.push(`旅人（${travelers.length}）：${travelers.join('、')}。`)
   }
@@ -73,4 +86,28 @@ export function allPlayerNames(match: Match): string[] {
     .slice()
     .sort((a, b) => a.seatIndex - b.seatIndex)
     .map((p) => p.name)
+}
+
+/** Token refs for every seated player (log-safe). */
+export function allPlayerRefs(match: Match): string[] {
+  return match.players
+    .slice()
+    .sort((a, b) => a.seatIndex - b.seatIndex)
+    .map((p) => playerMentionToken(p.id))
+}
+
+export function townsfolkRefs(match: Match): string[] {
+  return refsForFactions(match, ['townsfolk'])
+}
+
+export function minionRefs(match: Match): string[] {
+  return refsForFactions(match, ['minion'])
+}
+
+export function goodCampRefs(match: Match): string[] {
+  return refsForFactions(match, GOOD)
+}
+
+export function evilCampRefs(match: Match): string[] {
+  return refsForFactions(match, EVIL)
 }

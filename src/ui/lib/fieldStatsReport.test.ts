@@ -46,12 +46,12 @@ describe('fieldStatsReport', () => {
     expect(goodCampNames(match)).toEqual(['阿徒'])
   })
 
-  it('buildFieldStatsReport summarizes seats and factions', () => {
+  it('buildFieldStatsReport summarizes seats and factions with player tokens', () => {
     const report = buildFieldStatsReport(sampleMatch())
     expect(report).toContain('场上 4 人')
     expect(report).toContain('已指派 3')
-    expect(report).toContain('镇民（1）：阿徒')
-    expect(report).toContain('爪牙（1）：夜枭')
-    expect(report).toContain('恶魔（1）：小果')
+    expect(report).toContain('镇民（1）：@#p1')
+    expect(report).toContain('爪牙（1）：@#p3')
+    expect(report).toContain('恶魔（1）：@#p2')
   })
 })
