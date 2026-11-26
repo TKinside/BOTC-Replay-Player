@@ -55,7 +55,7 @@ describe('buildExportLines', () => {
     expect(lines).toContain('暗流涌动')
     expect(lines).toContain('1. 阿徒 · 洗衣妇')
     expect(lines).toContain('2. 小果')
-    expect(lines).toContain('阿徒 死亡')
+    expect(lines).toContain('阿徒(洗衣妇) 死亡')
     expect(lines).toContain('昵称原样导出 · 无打码')
     expect(lines.some((t) => t.includes('匿名'))).toBe(false)
   })

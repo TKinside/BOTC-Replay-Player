@@ -1,5 +1,6 @@
 import type { Match } from '@/domain'
 import type { LongImageExporter } from '@/ports'
+import { expandLogTextPlain } from '@/lib/customTextCompose'
 
 const WIDTH = 720
 const PAD = 32
@@ -117,8 +118,12 @@ export function buildExportLines(match: Match): DrawLine[] {
       })
     } else {
       for (const event of events) {
+        const raw = event.text || event.typeId
         lines.push({
-          text: event.text || event.typeId,
+          text: expandLogTextPlain(raw, {
+            roles: match.script.roles,
+            players: match.players,
+          }),
           size: 14,
           color: '#e8eef4',
           gapAfter: 8,
