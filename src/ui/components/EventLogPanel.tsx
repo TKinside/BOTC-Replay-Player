@@ -1066,11 +1066,7 @@ export function EventLogPanel({
                         onClick={() => pickStatusAnomalyOption(opt)}
                         className={`flex min-h-12 w-full items-center px-3 py-2.5 text-left text-sm text-[var(--ink)] touch-manipulation ${
                           i > 0 ? 'border-t border-[var(--line)]' : ''
-                        } ${
-                          opt.needsCustomText
-                            ? 'bg-[var(--bg-elevated)] text-[var(--accent-soft)]'
-                            : 'bg-[var(--bg-deep)]/40'
-                        }`}
+                        } bg-[var(--bg-deep)]/40`}
                       >
                         {opt.label}
                       </button>
