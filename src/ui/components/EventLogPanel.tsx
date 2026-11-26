@@ -9,7 +9,10 @@ import {
   CustomTextActionRegistry,
   EventTypeRegistry,
 } from '@/registries'
-import { composeCustomTextLog } from '../lib/customTextCompose'
+import {
+  composeCustomTextLog,
+  playerMentionToken,
+} from '@/lib/customTextCompose'
 import {
   allPlayerNames,
   buildFieldStatsReport,
@@ -243,15 +246,14 @@ export function EventLogPanel({
 
   const composedCustomPreview = useMemo(() => {
     if (composer?.mode !== 'custom') return ''
-    const nameOf = (id: string) =>
-      id ? match.players.find((p) => p.id === id)?.name ?? '' : ''
+    const refOf = (id: string) => (id ? playerMentionToken(id) : '')
     return composeCustomTextLog({
-      actorName: nameOf(actorId),
+      actorName: refOf(actorId),
       actionId,
-      targetNames: targetIds.map(nameOf),
+      targetNames: targetIds.map(refOf),
       text,
     })
-  }, [composer?.mode, match.players, actorId, actionId, targetIds, text])
+  }, [composer?.mode, actorId, actionId, targetIds, text])
 
   useEffect(() => {
     if (!composer) return
@@ -351,7 +353,7 @@ export function EventLogPanel({
       setPendingPlayerId(null)
       return
     }
-    const who = playerLogLabel(match, player)
+    const who = playerMentionToken(player.id)
     if (opt.id === 'custom') {
       insertIntoDraft(who)
       setDraftIcons((prev) =>
@@ -373,12 +375,11 @@ export function EventLogPanel({
     if (!composer) return
 
     if (composer.mode === 'custom') {
-      const nameOf = (id: string) =>
-        id ? match.players.find((p) => p.id === id)?.name ?? '' : ''
+      const refOf = (id: string) => (id ? playerMentionToken(id) : '')
       const finalText = composeCustomTextLog({
-        actorName: nameOf(actorId),
+        actorName: refOf(actorId),
         actionId,
-        targetNames: targetIds.map(nameOf),
+        targetNames: targetIds.map(refOf),
         text,
       })
       if (!finalText) return
@@ -528,6 +529,7 @@ export function EventLogPanel({
                               <EventLogText
                                 text={event.text}
                                 roles={match.script.roles}
+                                players={match.players}
                               />
                             ) : null}
                           </div>
@@ -981,6 +983,7 @@ export function EventLogPanel({
                     <EventLogText
                       text={composedCustomPreview}
                       roles={match.script.roles}
+                      players={match.players}
                     />
                   </p>
                 ) : null}

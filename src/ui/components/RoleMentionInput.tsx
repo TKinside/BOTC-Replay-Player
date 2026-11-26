@@ -10,7 +10,7 @@ import {
   activeMentionAt,
   filterRolesForMention,
   insertMention,
-} from '../lib/customTextCompose'
+} from '@/lib/customTextCompose'
 import { FACTION_LABEL } from '../lib/factionColor'
 import { RoleIcon } from './RoleIcon'
 

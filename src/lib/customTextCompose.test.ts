@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import type { RoleDef } from '@/domain'
+import type { Player } from '@/domain'
 import {
   activeMentionAt,
   composeCustomTextLog,
+  expandLogTextPlain,
   filterRolesForMention,
   insertMention,
+  parseLogText,
   parseRoleMentions,
+  playerMentionToken,
 } from './customTextCompose'
 
 const roles: RoleDef[] = [
@@ -116,6 +120,10 @@ describe('mention helpers', () => {
     expect(activeMentionAt('得知 寡妇', 5)).toBeNull()
   })
 
+  it('does not treat @# player tokens as role autocomplete', () => {
+    expect(activeMentionAt(`选${playerMentionToken('player-1')}`, 12)).toBeNull()
+  })
+
   it('inserts mention replacing the active query', () => {
     expect(insertMention('得知@寡', 4, '寡妇')).toEqual({
       value: '得知@寡妇',
@@ -127,5 +135,77 @@ describe('mention helpers', () => {
     expect(filterRolesForMention(roles, '寡').map((r) => r.id)).toEqual([
       'widow',
     ])
+  })
+})
+
+const players: Player[] = [
+  { id: 'player-a', seatIndex: 0, name: '爱丽丝', roleId: 'washerwoman' },
+  { id: 'player-b', seatIndex: 1, name: '鲍勃', roleId: 'widow' },
+  { id: 'player-c', seatIndex: 2, name: '卡罗' },
+]
+
+describe('parseLogText players', () => {
+  it('expands @#playerId to player+role when assigned', () => {
+    const text = `${playerMentionToken('player-a')}选择${playerMentionToken('player-b')}`
+    const segs = parseLogText(text, { roles, players })
+    expect(segs).toEqual([
+      {
+        kind: 'player',
+        player: players[0],
+        role: roles[1],
+        raw: playerMentionToken('player-a'),
+      },
+      { kind: 'text', value: '选择' },
+      {
+        kind: 'player',
+        player: players[1],
+        role: roles[0],
+        raw: playerMentionToken('player-b'),
+      },
+    ])
+  })
+
+  it('leaves unassigned players without a role', () => {
+    const segs = parseLogText(playerMentionToken('player-c'), {
+      roles,
+      players,
+    })
+    expect(segs).toEqual([
+      {
+        kind: 'player',
+        player: players[2],
+        role: undefined,
+        raw: playerMentionToken('player-c'),
+      },
+    ])
+  })
+
+  it('matches bare player names in free text', () => {
+    const segs = parseLogText('爱丽丝选择鲍勃', { roles, players })
+    expect(segs.map((s) => s.kind)).toEqual(['player', 'text', 'player'])
+  })
+
+  it('expands tokens to plain name(role) for export', () => {
+    expect(
+      expandLogTextPlain(
+        `${playerMentionToken('player-a')}选择${playerMentionToken('player-c')}`,
+        { roles, players },
+      ),
+    ).toBe('爱丽丝(洗衣妇)选择卡罗')
+  })
+})
+
+describe('compose with player tokens', () => {
+  it('embeds tokens for rich rendering', () => {
+    expect(
+      composeCustomTextLog({
+        actorName: playerMentionToken('player-a'),
+        actionId: 'choose',
+        targetNames: [playerMentionToken('player-b')],
+        text: '',
+      }),
+    ).toBe(
+      `${playerMentionToken('player-a')}选择${playerMentionToken('player-b')}`,
+    )
   })
 })
