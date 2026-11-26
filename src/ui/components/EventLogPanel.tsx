@@ -5,7 +5,11 @@ import {
   formatPhaseEnLabel,
   formatPhaseLabel,
 } from '@/domain'
-import { EventTypeRegistry } from '@/registries'
+import {
+  CustomTextActionRegistry,
+  EventTypeRegistry,
+} from '@/registries'
+import { composeCustomTextLog } from '../lib/customTextCompose'
 import {
   allPlayerNames,
   buildFieldStatsReport,
@@ -21,7 +25,11 @@ import {
   type PlayerRecordAction,
   type PlayerRecordActionId,
 } from '../lib/playerRecordActions'
+import { EventLogText } from './EventLogText'
+import { RoleMentionInput } from './RoleMentionInput'
 import { SeatingStatusPanel } from './SeatingStatusPanel'
+
+type PickField = 'actor' | 'target'
 
 interface EventLogPanelProps {
   match: Match
@@ -180,9 +188,12 @@ export function EventLogPanel({
     mode: ComposerMode
   } | null>(null)
   const [actorId, setActorId] = useState('')
-  const [targetId, setTargetId] = useState('')
+  const [actionId, setActionId] = useState('')
+  /** Target player id slots; default one empty「（无）」slot when opening custom. */
+  const [targetIds, setTargetIds] = useState<string[]>([''])
+  const [targetSlotIndex, setTargetSlotIndex] = useState(0)
   const [text, setText] = useState('')
-  const [pickField, setPickField] = useState<'target' | 'actor'>('target')
+  const [pickField, setPickField] = useState<PickField>('actor')
   const [endWithPeriod, setEndWithPeriod] = useState(true)
   const [recordPicker, setRecordPicker] = useState<RecordPicker>('root')
   const [pendingPlayerId, setPendingPlayerId] = useState<string | null>(null)
@@ -213,12 +224,34 @@ export function EventLogPanel({
     ? match.phases.find((p) => p.id === composer.phaseId)
     : undefined
 
-  const selectedPlayerId = pickField === 'actor' ? actorId : targetId
+  const selectedTargetId =
+    targetIds[targetSlotIndex] !== undefined
+      ? targetIds[targetSlotIndex]
+      : ''
+  const selectedPlayerId =
+    pickField === 'actor' ? actorId : selectedTargetId || undefined
 
   const sortedPlayers = useMemo(
     () => match.players.slice().sort((a, b) => a.seatIndex - b.seatIndex),
     [match.players],
   )
+
+  const customTextActions = useMemo(
+    () => CustomTextActionRegistry.list(),
+    [],
+  )
+
+  const composedCustomPreview = useMemo(() => {
+    if (composer?.mode !== 'custom') return ''
+    const nameOf = (id: string) =>
+      id ? match.players.find((p) => p.id === id)?.name ?? '' : ''
+    return composeCustomTextLog({
+      actorName: nameOf(actorId),
+      actionId,
+      targetNames: targetIds.map(nameOf),
+      text,
+    })
+  }, [composer?.mode, match.players, actorId, actionId, targetIds, text])
 
   useEffect(() => {
     if (!composer) return
@@ -232,13 +265,49 @@ export function EventLogPanel({
   function openComposer(phaseId: string, mode: ComposerMode) {
     setComposer({ phaseId, mode })
     setActorId('')
-    setTargetId('')
+    setActionId('')
+    setTargetIds([''])
+    setTargetSlotIndex(0)
     setText('')
-    setPickField('target')
+    setPickField(mode === 'custom' ? 'actor' : 'target')
     setEndWithPeriod(true)
     setRecordPicker('root')
     setPendingPlayerId(null)
     setDraftIcons([])
+  }
+
+  function setTargetAt(index: number, playerId: string) {
+    setTargetIds((prev) => {
+      const next = prev.slice()
+      if (index < 0 || index >= next.length) return prev
+      next[index] = playerId
+      return next
+    })
+    setTargetSlotIndex(index)
+    setPickField('target')
+  }
+
+  function addTargetSlot() {
+    setTargetIds((prev) => {
+      const next = [...prev, '']
+      setTargetSlotIndex(next.length - 1)
+      return next
+    })
+    setPickField('target')
+  }
+
+  function removeTargetSlot(index: number) {
+    setTargetIds((prev) => {
+      if (prev.length === 0) return prev
+      const next = prev.filter((_, i) => i !== index)
+      setTargetSlotIndex((cur) => {
+        if (next.length === 0) return 0
+        if (cur > index) return Math.min(cur - 1, next.length - 1)
+        if (cur >= next.length) return next.length - 1
+        return cur
+      })
+      return next
+    })
   }
 
   function insertIntoDraft(snippet: string) {
@@ -253,7 +322,8 @@ export function EventLogPanel({
 
   function openPlayerActionPicker(player: Player) {
     setPendingPlayerId(player.id)
-    setTargetId(player.id)
+    setTargetIds([player.id])
+    setTargetSlotIndex(0)
     setRecordPicker('player')
   }
 
@@ -301,22 +371,51 @@ export function EventLogPanel({
 
   function submitComposer() {
     if (!composer) return
+
+    if (composer.mode === 'custom') {
+      const nameOf = (id: string) =>
+        id ? match.players.find((p) => p.id === id)?.name ?? '' : ''
+      const finalText = composeCustomTextLog({
+        actorName: nameOf(actorId),
+        actionId,
+        targetNames: targetIds.map(nameOf),
+        text,
+      })
+      if (!finalText) return
+      const filledTargets = targetIds.filter((id) => id.length > 0)
+      onRecordEvent({
+        phaseId: composer.phaseId,
+        typeId: 'custom',
+        text: finalText,
+        actorPlayerIds: actorId ? [actorId] : undefined,
+        targetPlayerIds: filledTargets.length > 0 ? filledTargets : undefined,
+        payload: {
+          ...(actionId ? { actionId } : {}),
+        },
+      })
+      setComposer(null)
+      setText('')
+      setActionId('')
+      setTargetIds([''])
+      setTargetSlotIndex(0)
+      setDraftIcons([])
+      setPendingPlayerId(null)
+      setRecordPicker('root')
+      return
+    }
+
     const raw = text.trim()
     if (!raw) return
     const finalText =
-      composer.mode === 'record' && endWithPeriod && !/[。.!！？?]$/.test(raw)
-        ? `${raw}。`
-        : raw
+      endWithPeriod && !/[。.!！？?]$/.test(raw) ? `${raw}。` : raw
+    const filledTargets = targetIds.filter((id) => id.length > 0)
     onRecordEvent({
       phaseId: composer.phaseId,
-      typeId: composer.mode === 'custom' ? 'custom' : 'announce',
+      typeId: 'announce',
       text: finalText,
       actorPlayerIds: actorId ? [actorId] : undefined,
-      targetPlayerIds: targetId ? [targetId] : undefined,
-      payload:
-        composer.mode === 'record' && draftIcons.length > 0
-          ? { logIcons: draftIcons }
-          : undefined,
+      targetPlayerIds: filledTargets.length > 0 ? filledTargets : undefined,
+      payload: draftIcons.length > 0 ? { logIcons: draftIcons } : undefined,
     })
     setComposer(null)
     setText('')
@@ -340,7 +439,9 @@ export function EventLogPanel({
               ? '选择玩家动作'
               : pickField === 'actor'
                 ? '行动者'
-                : '目标'
+                : targetIds.length === 0
+                  ? '目标（先点 + 添加）'
+                  : `目标 ${targetSlotIndex + 1}`
           }
           onSelectPlayer={(playerId) => {
             const player = match.players.find((p) => p.id === playerId)
@@ -349,6 +450,7 @@ export function EventLogPanel({
               if (!phaseId || !player) return
               setComposer({ phaseId, mode: 'record' })
               setActorId('')
+              setActionId('')
               setPickField('target')
               setEndWithPeriod(true)
               setDraftIcons([])
@@ -360,8 +462,16 @@ export function EventLogPanel({
               if (player) openPlayerActionPicker(player)
               return
             }
-            if (pickField === 'actor') setActorId(playerId)
-            else setTargetId(playerId)
+            if (pickField === 'actor') {
+              setActorId(playerId)
+              return
+            }
+            if (targetIds.length === 0) {
+              setTargetIds([playerId])
+              setTargetSlotIndex(0)
+              return
+            }
+            setTargetAt(targetSlotIndex, playerId)
           }}
         />
       </div>
@@ -414,7 +524,12 @@ export function EventLogPanel({
                               {EventTypeRegistry.get(event.typeId)?.label ??
                                 event.typeId}
                             </span>
-                            {event.text}
+                            {event.text ? (
+                              <EventLogText
+                                text={event.text}
+                                roles={match.script.roles}
+                              />
+                            ) : null}
                           </div>
                           <div className="flex shrink-0 items-center gap-0.5">
                             <button
@@ -700,18 +815,6 @@ export function EventLogPanel({
                   <button
                     type="button"
                     className={`mx-1 underline-offset-2 touch-manipulation ${
-                      pickField === 'target'
-                        ? 'text-[var(--accent-soft)] underline'
-                        : 'text-[var(--ink-muted)]'
-                    }`}
-                    onClick={() => setPickField('target')}
-                  >
-                    目标
-                  </button>
-                  /
-                  <button
-                    type="button"
-                    className={`mx-1 underline-offset-2 touch-manipulation ${
                       pickField === 'actor'
                         ? 'text-[var(--accent-soft)] underline'
                         : 'text-[var(--ink-muted)]'
@@ -720,9 +823,25 @@ export function EventLogPanel({
                   >
                     行动者
                   </button>
+                  /
+                  <button
+                    type="button"
+                    className={`mx-1 underline-offset-2 touch-manipulation ${
+                      pickField === 'target'
+                        ? 'text-[var(--accent-soft)] underline'
+                        : 'text-[var(--ink-muted)]'
+                    }`}
+                    onClick={() => {
+                      if (targetIds.length === 0) addTargetSlot()
+                      else setPickField('target')
+                    }}
+                  >
+                    目标
+                    {targetIds.length > 0 ? ` ${targetSlotIndex + 1}` : ''}
+                  </button>
                 </p>
 
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="flex flex-col gap-2">
                   <label className="text-xs text-[var(--ink-muted)]">
                     行动者
                     <select
@@ -742,41 +861,133 @@ export function EventLogPanel({
                       ))}
                     </select>
                   </label>
+
                   <label className="text-xs text-[var(--ink-muted)]">
-                    目标
+                    行动
                     <select
                       className="mt-1 min-h-11 w-full rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-2 py-2 text-base text-[var(--ink)] sm:text-sm"
-                      value={targetId}
-                      onFocus={() => setPickField('target')}
-                      onChange={(e) => {
-                        setTargetId(e.target.value)
-                        setPickField('target')
-                      }}
+                      value={actionId}
+                      onChange={(e) => setActionId(e.target.value)}
                     >
                       <option value="">（无）</option>
-                      {sortedPlayers.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {playerOptionLabel(match, p)}
+                      {customTextActions.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.label}
                         </option>
                       ))}
                     </select>
                   </label>
+
+                  <div className="text-xs text-[var(--ink-muted)]">
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <span>目标</span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={addTargetSlot}
+                          className="min-h-9 min-w-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] text-sm text-[var(--ink)] touch-manipulation"
+                          aria-label="添加目标"
+                          title="添加目标"
+                        >
+                          +
+                        </button>
+                        <button
+                          type="button"
+                          disabled={targetIds.length === 0}
+                          onClick={() =>
+                            removeTargetSlot(
+                              Math.min(
+                                targetSlotIndex,
+                                Math.max(0, targetIds.length - 1),
+                              ),
+                            )
+                          }
+                          className="min-h-9 min-w-9 rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] text-sm text-[var(--ink)] touch-manipulation disabled:opacity-40"
+                          aria-label="移除当前目标"
+                          title="移除当前目标"
+                        >
+                          −
+                        </button>
+                      </div>
+                    </div>
+                    {targetIds.length === 0 ? (
+                      <p className="rounded-md border border-dashed border-[var(--line)] bg-[var(--bg-deep)]/40 px-2 py-2 text-[var(--ink-muted)]">
+                        无目标槽 — 点 + 添加，或仅写文本
+                      </p>
+                    ) : (
+                      <ul className="flex flex-col gap-1.5">
+                        {targetIds.map((tid, index) => (
+                          <li key={`target-slot-${index}`} className="flex gap-1.5">
+                            <select
+                              className={`min-h-11 min-w-0 flex-1 rounded-md border px-2 py-2 text-base text-[var(--ink)] sm:text-sm ${
+                                pickField === 'target' &&
+                                targetSlotIndex === index
+                                  ? 'border-[var(--accent-soft)] bg-[var(--bg-deep)]'
+                                  : 'border-[var(--line)] bg-[var(--bg-deep)]'
+                              }`}
+                              value={tid}
+                              onFocus={() => {
+                                setPickField('target')
+                                setTargetSlotIndex(index)
+                              }}
+                              onChange={(e) =>
+                                setTargetAt(index, e.target.value)
+                              }
+                              aria-label={`目标 ${index + 1}`}
+                            >
+                              <option value="">（无）</option>
+                              {sortedPlayers.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {playerOptionLabel(match, p)}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => removeTargetSlot(index)}
+                              className="min-h-11 shrink-0 rounded-md border border-[var(--line)] px-2 text-xs text-[var(--ink-muted)] touch-manipulation"
+                              aria-label={`移除目标 ${index + 1}`}
+                            >
+                              移除
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 </div>
 
                 <label className="mt-2 block text-xs text-[var(--ink-muted)]">
                   文本
-                  <textarea
+                  <span className="ml-1 font-normal text-[var(--ink-muted)]/80">
+                    （输入 @ 可引用剧本角色）
+                  </span>
+                  <RoleMentionInput
                     className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-2 py-2 text-base text-[var(--ink)] sm:text-sm"
                     rows={3}
                     value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder="写下本阶段备注…"
+                    onChange={setText}
+                    roles={match.script.roles}
+                    placeholder="写下本阶段备注… 可用 @角色"
+                    aria-label="自定义文本"
                   />
                 </label>
 
+                {composedCustomPreview ? (
+                  <p className="mt-2 rounded-md bg-[var(--bg-deep)]/60 px-2.5 py-2 text-sm leading-snug text-[var(--ink)]">
+                    <span className="mr-2 text-xs text-[var(--ink-muted)]">
+                      预览
+                    </span>
+                    <EventLogText
+                      text={composedCustomPreview}
+                      roles={match.script.roles}
+                    />
+                  </p>
+                ) : null}
+
                 <button
                   type="button"
-                  disabled={!text.trim()}
+                  disabled={!composedCustomPreview}
                   className="mt-4 min-h-11 w-full rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white touch-manipulation disabled:opacity-50"
                   onClick={submitComposer}
                 >
