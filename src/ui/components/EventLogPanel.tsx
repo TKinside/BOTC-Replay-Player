@@ -353,7 +353,9 @@ export function EventLogPanel({
       setPendingPlayerId(null)
       return
     }
-    const who = playerMentionToken(player.id)
+    // Insert the nickname into the editable draft; log rendering matches bare
+    // names to role icon + name(role). Custom-text actor/targets still use @# tokens.
+    const who = player.name
     if (opt.id === 'custom') {
       insertIntoDraft(who)
       setDraftIcons((prev) =>
