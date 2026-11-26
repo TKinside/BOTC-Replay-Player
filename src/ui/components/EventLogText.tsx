@@ -24,10 +24,10 @@ export function EventLogText({
         return (
           <span
             key={`m-${i}-${seg.role.id}`}
-            className="mx-0.5 inline-flex items-center gap-0.5 align-middle"
+            className="inline-flex items-center gap-0.5 align-middle"
             title={seg.role.name}
           >
-            <RoleIcon role={seg.role} size={iconSize} />
+            <RoleIcon role={seg.role} size={iconSize} className="mx-px" />
             <span>{seg.role.name}</span>
           </span>
         )

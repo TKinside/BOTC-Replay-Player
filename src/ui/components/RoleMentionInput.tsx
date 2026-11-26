@@ -11,6 +11,7 @@ import {
   filterRolesForMention,
   insertMention,
 } from '../lib/customTextCompose'
+import { FACTION_LABEL } from '../lib/factionColor'
 import { RoleIcon } from './RoleIcon'
 
 type Props = {
@@ -148,7 +149,7 @@ export function RoleMentionInput({
                 <RoleIcon role={role} size={20} />
                 <span className="min-w-0 flex-1 truncate">{role.name}</span>
                 <span className="shrink-0 text-[10px] text-[var(--ink-muted)]">
-                  {role.faction}
+                  {FACTION_LABEL[role.faction] ?? role.faction}
                 </span>
               </button>
             </li>
