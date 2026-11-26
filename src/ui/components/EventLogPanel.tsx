@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Match, Phase, Player } from '@/domain'
-import { formatPhaseEnLabel, formatPhaseLabel } from '@/domain'
+import type { Match, MoveEventDirection, Phase, Player } from '@/domain'
+import {
+  canMoveEvent,
+  formatPhaseEnLabel,
+  formatPhaseLabel,
+} from '@/domain'
 import { EventTypeRegistry } from '@/registries'
 import {
   allPlayerNames,
@@ -24,6 +28,7 @@ interface EventLogPanelProps {
   onAdvancePhase: () => void
   onRemovePhase: (phaseId: string) => void
   onRemoveEvent: (eventId: string) => void
+  onMoveEvent: (eventId: string, direction: MoveEventDirection) => void
   onRecordEvent: (input: {
     typeId: string
     text?: string
@@ -167,6 +172,7 @@ export function EventLogPanel({
   onAdvancePhase,
   onRemovePhase,
   onRemoveEvent,
+  onMoveEvent,
   onRecordEvent,
 }: EventLogPanelProps) {
   const [composer, setComposer] = useState<{
@@ -187,6 +193,17 @@ export function EventLogPanel({
       phase,
       events: match.events.filter((e) => e.phaseId === phase.id),
     }))
+  }, [match])
+
+  const moveFlags = useMemo(() => {
+    const flags = new Map<string, { up: boolean; down: boolean }>()
+    for (const event of match.events) {
+      flags.set(event.id, {
+        up: canMoveEvent(match, event.id, 'up'),
+        down: canMoveEvent(match, event.id, 'down'),
+      })
+    }
+    return flags
   }, [match])
 
   const lastPhaseId = match.phases[match.phases.length - 1]?.id
@@ -378,6 +395,8 @@ export function EventLogPanel({
                   <ul className="mb-3 flex flex-col gap-1.5">
                     {events.map((event) => {
                       const icons = readLogIcons(event.payload)
+                      const moveUp = moveFlags.get(event.id)?.up ?? false
+                      const moveDown = moveFlags.get(event.id)?.down ?? false
                       return (
                         <li
                           key={event.id}
@@ -397,23 +416,45 @@ export function EventLogPanel({
                             </span>
                             {event.text}
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (
-                                !confirm(
-                                  '删除这条记录？相关状态会按剩余事件重新计算。',
-                                )
-                              ) {
-                                return
-                              }
-                              onRemoveEvent(event.id)
-                            }}
-                            className="min-h-9 shrink-0 rounded-md px-2 text-xs text-[var(--danger)] touch-manipulation"
-                            aria-label="删除这条记录"
-                          >
-                            删除
-                          </button>
+                          <div className="flex shrink-0 items-center gap-0.5">
+                            <button
+                              type="button"
+                              disabled={!moveUp}
+                              onClick={() => onMoveEvent(event.id, 'up')}
+                              className="min-h-9 min-w-9 rounded-md px-1.5 text-sm text-[var(--ink-muted)] touch-manipulation disabled:opacity-30"
+                              aria-label="上移这条记录"
+                              title="上移"
+                            >
+                              ↑
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!moveDown}
+                              onClick={() => onMoveEvent(event.id, 'down')}
+                              className="min-h-9 min-w-9 rounded-md px-1.5 text-sm text-[var(--ink-muted)] touch-manipulation disabled:opacity-30"
+                              aria-label="下移这条记录"
+                              title="下移"
+                            >
+                              ↓
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (
+                                  !confirm(
+                                    '删除这条记录？相关状态会按剩余事件重新计算。',
+                                  )
+                                ) {
+                                  return
+                                }
+                                onRemoveEvent(event.id)
+                              }}
+                              className="min-h-9 shrink-0 rounded-md px-2 text-xs text-[var(--danger)] touch-manipulation"
+                              aria-label="删除这条记录"
+                            >
+                              删除
+                            </button>
+                          </div>
                         </li>
                       )
                     })}

@@ -237,6 +237,11 @@ export function MatchEditorPage() {
           onRemoveEvent={(eventId) =>
             void run((current) => service.removeEvent(current, eventId))
           }
+          onMoveEvent={(eventId, direction) =>
+            void run((current) =>
+              service.moveEvent(current, eventId, direction),
+            )
+          }
           onRecordEvent={(input) =>
             void run((current) => service.recordEvent(current, input))
           }
