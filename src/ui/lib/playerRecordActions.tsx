@@ -20,7 +20,7 @@ export const PLAYER_RECORD_ACTIONS: PlayerRecordAction[] = [
   { id: 'nominate-execute', label: '提名/处决', tag: '通用' },
   {
     id: 'poison-drunk',
-    label: '中毒/醉酒/恢复健康/恢复清醒',
+    label: '状态异常',
     tag: '通用',
   },
   { id: 'death-revive', label: '死亡/不会死亡/复活', tag: '通用' },
@@ -198,5 +198,55 @@ export function composeNominateExecuteSnippet(input: {
       return `${actor}投了票`
     case 'executed-simple':
       return `${actor}被处决`
+  }
+}
+
+/** Sub-options after tapping「状态异常」(mini-program post-menu). */
+export type StatusAnomalyOptionId =
+  | 'poisoned'
+  | 'drunk'
+  | 'recover-poison'
+  | 'recover-drunk'
+  | 'custom-status'
+
+export type StatusAnomalyOption = {
+  id: StatusAnomalyOptionId
+  label: string
+  /** Collect free-text status after picking this row. */
+  needsCustomText?: boolean
+}
+
+/**
+ * Central list for the 状态异常 post-menu — add rows here, not in the modal.
+ * Fixed labels match the WeChat mini-program; 自定义状态 is a desktop extension.
+ */
+export const STATUS_ANOMALY_OPTIONS: StatusAnomalyOption[] = [
+  { id: 'poisoned', label: '中毒了' },
+  { id: 'drunk', label: '醉酒了' },
+  { id: 'recover-poison', label: '恢复健康了(不再中毒)' },
+  { id: 'recover-drunk', label: '恢复清醒了(不再醉酒)' },
+  { id: 'custom-status', label: '自定义状态', needsCustomText: true },
+]
+
+/** Build the draft snippet for a 状态异常 sub-option. */
+export function composeStatusAnomalySnippet(input: {
+  actorName: string
+  optionId: StatusAnomalyOptionId
+  customText?: string
+}): string {
+  const actor = input.actorName.trim()
+  switch (input.optionId) {
+    case 'poisoned':
+      return `${actor}中毒了`
+    case 'drunk':
+      return `${actor}醉酒了`
+    case 'recover-poison':
+      return `${actor}恢复健康了(不再中毒)`
+    case 'recover-drunk':
+      return `${actor}恢复清醒了(不再醉酒)`
+    case 'custom-status': {
+      const custom = input.customText?.trim() || ''
+      return `${actor}${custom}`
+    }
   }
 }
