@@ -409,7 +409,7 @@ export function EventLogPanel({
                               }
                               onRemoveEvent(event.id)
                             }}
-                            className="min-h-9 shrink-0 rounded-md px-2 text-xs text-red-300 touch-manipulation"
+                            className="min-h-9 shrink-0 rounded-md px-2 text-xs text-[var(--danger)] touch-manipulation"
                             aria-label="删除这条记录"
                           >
                             删除
@@ -461,7 +461,8 @@ export function EventLogPanel({
 
       {composer && activePhase && (
         <div
-          className="fixed inset-0 z-40 flex items-end justify-center bg-black/55 p-3 sm:items-center"
+          className="fixed inset-0 z-40 flex items-end justify-center p-3 sm:items-center"
+          style={{ background: 'var(--overlay)' }}
           role="presentation"
           onClick={() => setComposer(null)}
         >

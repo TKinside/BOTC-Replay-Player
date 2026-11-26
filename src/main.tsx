@@ -1,7 +1,11 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from '@/ui'
+import { applyTheme, readStoredTheme } from '@/ui/lib/theme'
 import '@/ui/styles/index.css'
+
+// Apply stored theme before first paint to avoid a dark→light flash.
+applyTheme(readStoredTheme())
 
 // GitHub Pages: public/404.html stashes the deep link, then boots index.html.
 const REDIRECT_KEY = 'botc:ghpages-redirect'

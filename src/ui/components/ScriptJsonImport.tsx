@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 export type ScriptImportFeedback = {
   /** One-line result for the chip / status. */
   summary: string
-  /** Soft warnings; shown only after tapping the corner tip. */
+  /** Soft warnings; shown only after tapping the tip. */
   warnings?: string[]
   /** True when import failed (errors in details or summary). */
   failed?: boolean
@@ -12,13 +12,13 @@ export type ScriptImportFeedback = {
 type Props = {
   disabled?: boolean
   onImportJson: (text: string) => Promise<ScriptImportFeedback>
-  /** Seating circle to anchor the corner import control. */
+  /** Seating circle (or other table content) below the import control. */
   children: ReactNode
 }
 
 /**
- * Tiny「导入」at the seating circle's bottom-right.
- * Import tips/warnings surface as a top-left chip (no screen flood).
+ * 「导入」at the top-left of the 圆桌 tab content.
+ * Import tips/warnings surface as a chip beside the button (no screen flood).
  */
 export function ScriptJsonImport({
   disabled,
@@ -61,32 +61,8 @@ export function ScriptJsonImport({
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      {showTip && (
-        <div className="mx-auto flex w-full max-w-[22rem] justify-start lg:max-w-[28rem]">
-          <button
-            type="button"
-            onClick={() => setDetailOpen(true)}
-            className={`min-h-7 shrink-0 rounded border px-1.5 py-0.5 text-[10px] leading-none shadow-sm touch-manipulation ${
-              feedback?.failed
-                ? 'border-red-400/70 bg-[var(--bg-elevated)] text-red-300'
-                : 'border-[var(--accent)] bg-[var(--bg-elevated)] text-[var(--accent-soft)]'
-            }`}
-            aria-label={
-              feedback?.failed
-                ? '查看导入错误'
-                : `查看导入提示（${warningCount} 条）`
-            }
-            title={feedback?.summary}
-          >
-            {feedback?.failed ? `失败·${warningCount || '看'}` : `提示·${warningCount}`}
-          </button>
-        </div>
-      )}
-
-      <div className="relative mx-auto w-full max-w-[22rem] lg:max-w-[28rem]">
-        {children}
-
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           disabled={disabled || busy}
@@ -97,7 +73,7 @@ export function ScriptJsonImport({
             setDetailOpen(false)
             fileRef.current?.click()
           }}
-          className="absolute bottom-0 right-0 z-20 min-h-8 rounded border border-[var(--accent)] bg-[var(--bg-deep)]/95 px-2 py-1 text-[11px] leading-none text-[var(--accent-soft)] shadow-sm backdrop-blur-sm touch-manipulation disabled:opacity-60"
+          className="min-h-8 rounded border border-[var(--accent)] bg-[var(--bg-elevated)] px-2.5 py-1 text-[11px] leading-none text-[var(--accent-soft)] shadow-sm touch-manipulation disabled:opacity-60"
         >
           {busy ? '…' : '导入'}
         </button>
@@ -113,12 +89,34 @@ export function ScriptJsonImport({
             void importFile(file)
           }}
         />
+
+        {showTip && (
+          <button
+            type="button"
+            onClick={() => setDetailOpen(true)}
+            className={`min-h-7 shrink-0 rounded border px-1.5 py-0.5 text-[10px] leading-none shadow-sm touch-manipulation ${
+              feedback?.failed
+                ? 'border-red-400/70 bg-[var(--bg-elevated)] text-[var(--danger)]'
+                : 'border-[var(--accent)] bg-[var(--bg-elevated)] text-[var(--accent-soft)]'
+            }`}
+            aria-label={
+              feedback?.failed
+                ? '查看导入错误'
+                : `查看导入提示（${warningCount} 条）`
+            }
+            title={feedback?.summary}
+          >
+            {feedback?.failed ? `失败·${warningCount || '看'}` : `提示·${warningCount}`}
+          </button>
+        )}
       </div>
+
+      {children}
 
       {feedback && !showTip && (
         <p
           role="status"
-          className="mx-auto w-full max-w-[22rem] text-center text-sm text-[var(--ink-muted)] lg:max-w-[28rem]"
+          className="w-full text-sm text-[var(--ink-muted)]"
         >
           {feedback.summary}
         </p>
@@ -126,7 +124,8 @@ export function ScriptJsonImport({
 
       {detailOpen && feedback && (
         <div
-          className="fixed inset-0 z-40 flex items-end justify-center bg-black/55 p-3 sm:items-center"
+          className="fixed inset-0 z-40 flex items-end justify-center p-3 sm:items-center"
+          style={{ background: 'var(--overlay)' }}
           role="presentation"
           onClick={() => setDetailOpen(false)}
         >

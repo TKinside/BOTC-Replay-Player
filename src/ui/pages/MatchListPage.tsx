@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import type { Match } from '@/domain'
 import { getMatchService } from '@/application'
 import { RoleIcon } from '../components/RoleIcon'
+import { ThemeToggle } from '../components/ThemeToggle'
 
 export function MatchListPage() {
   const navigate = useNavigate()
@@ -62,11 +63,14 @@ export function MatchListPage() {
   return (
     <div className="flex flex-col gap-6">
       <section>
-        <div className="mb-3">
-          <h2 className="text-lg font-medium">对局列表</h2>
-          <p className="text-sm text-[var(--ink-muted)]">
-            保存在浏览器 IndexedDB，刷新不丢。脚本 JSON 在进入对局后于「圆桌」角上导入。
-          </p>
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-lg font-medium">对局列表</h2>
+            <p className="text-sm text-[var(--ink-muted)]">
+              保存在浏览器 IndexedDB，刷新不丢。脚本 JSON 在进入对局后于「圆桌」左上角导入。
+            </p>
+          </div>
+          <ThemeToggle />
         </div>
 
         <button
@@ -79,14 +83,14 @@ export function MatchListPage() {
         </button>
 
         {error && (
-          <p className="mb-3 whitespace-pre-wrap text-sm text-red-300">{error}</p>
+          <p className="mb-3 whitespace-pre-wrap text-sm text-[var(--danger)]">{error}</p>
         )}
 
         {loading ? (
           <p className="text-sm text-[var(--ink-muted)]">加载中…</p>
         ) : matches.length === 0 ? (
           <div className="rounded-lg border border-dashed border-[var(--line)] bg-[var(--bg-panel)] px-4 py-10 text-center text-sm text-[var(--ink-muted)]">
-            还没有对局。点上方「+ 创建记录」开始，再在圆桌导入脚本 JSON。
+            还没有对局。点上方「+ 创建记录」开始，再在圆桌左上角导入脚本 JSON。
           </div>
         ) : (
           <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
@@ -160,7 +164,7 @@ function MatchCard({
         <button
           type="button"
           onClick={onDelete}
-          className="min-h-10 shrink-0 px-2 text-xs text-red-300 touch-manipulation"
+          className="min-h-10 shrink-0 px-2 text-xs text-[var(--danger)] touch-manipulation"
         >
           删除
         </button>

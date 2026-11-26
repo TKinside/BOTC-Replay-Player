@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 
-:root {
+:root,
+[data-theme='dark'] {
   --bg-deep: #0f1419;
   --bg-panel: #1a222c;
   --bg-elevated: #243040;
@@ -11,10 +12,36 @@
   --line: #2e3a48;
   --good: #5b9bd5;
   --evil: #c45c4a;
+  --danger: #f0a8a0;
+  --overlay: rgb(0 0 0 / 0.55);
+  --body-glow-a: #2a1f28;
+  --body-glow-b: #1a2838;
+}
+
+/* Cool stone / parchment — BOTC blood accent kept; not purple, not cream-serif. */
+[data-theme='light'] {
+  --bg-deep: #e9ecef;
+  --bg-panel: #f7f8fa;
+  --bg-elevated: #ffffff;
+  --ink: #1c2430;
+  --ink-muted: #5c6b7a;
+  --accent: #b84538;
+  --accent-soft: #8f3a30;
+  --line: #c5ced6;
+  --good: #3a7ab5;
+  --evil: #b84538;
+  --danger: #a83228;
+  --overlay: rgb(28 36 48 / 0.4);
+  --body-glow-a: #e4d4d0;
+  --body-glow-b: #d2dce8;
+}
+
+:root {
   font-family: 'Segoe UI', 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei',
     sans-serif;
   color: var(--ink);
   background: var(--bg-deep);
+  color-scheme: dark;
   line-height: 1.5;
   font-weight: 400;
   font-synthesis: none;
@@ -22,6 +49,10 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
 }
 
 *,
@@ -39,8 +70,16 @@ body {
   margin: 0;
   min-height: 100dvh;
   background:
-    radial-gradient(ellipse 120% 80% at 50% -20%, #2a1f28 0%, transparent 55%),
-    radial-gradient(ellipse 80% 50% at 100% 100%, #1a2838 0%, transparent 45%),
+    radial-gradient(
+      ellipse 120% 80% at 50% -20%,
+      var(--body-glow-a) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 80% 50% at 100% 100%,
+      var(--body-glow-b) 0%,
+      transparent 45%
+    ),
     var(--bg-deep);
 }
 

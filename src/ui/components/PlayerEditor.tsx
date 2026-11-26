@@ -52,7 +52,8 @@ export function PlayerEditor({
       <button
         type="button"
         aria-label="点击关闭编辑面板"
-        className="absolute inset-0 bg-black/55"
+        className="absolute inset-0"
+        style={{ background: 'var(--overlay)' }}
         onClick={onClose}
       />
       <div
@@ -160,7 +161,7 @@ export function PlayerEditor({
         <footer className="shrink-0 border-t border-[var(--line)] px-4 py-3">
           <button
             type="button"
-            className="min-h-11 w-full rounded-md border border-red-400/40 px-3 py-2 text-sm text-red-300 touch-manipulation"
+            className="min-h-11 w-full rounded-md border border-red-400/40 px-3 py-2 text-sm text-[var(--danger)] touch-manipulation"
             onClick={() => onRemove(player.id)}
           >
             移除此座位
