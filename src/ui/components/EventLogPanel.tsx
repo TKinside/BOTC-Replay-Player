@@ -23,14 +23,18 @@ import {
 } from '../lib/fieldStatsReport'
 import {
   composeNominateExecuteSnippet,
+  composeStatusAnomalySnippet,
   isPlayerRecordActionId,
   NOMINATE_EXECUTE_OPTIONS,
   PLAYER_RECORD_ACTIONS,
   PlayerActionIcon,
+  STATUS_ANOMALY_OPTIONS,
   type NominateExecuteOption,
   type NominateExecuteOptionId,
   type PlayerRecordAction,
   type PlayerRecordActionId,
+  type StatusAnomalyOption,
+  type StatusAnomalyOptionId,
 } from '../lib/playerRecordActions'
 import { EventLogText } from './EventLogText'
 import { RoleMentionInput } from './RoleMentionInput'
@@ -96,6 +100,8 @@ type RecordPicker =
   | 'nominate-execute'
   | 'nominate-target'
   | 'nominate-votes'
+  | 'status-anomaly'
+  | 'status-anomaly-custom'
 
 function playerLogLabel(match: Match, player: Player): string {
   const role = match.script.roles.find((r) => r.id === player.roleId)
@@ -214,6 +220,9 @@ export function EventLogPanel({
     string | null
   >(null)
   const [nominateVoteCount, setNominateVoteCount] = useState('0')
+  const [pendingStatusOptionId, setPendingStatusOptionId] =
+    useState<StatusAnomalyOptionId | null>(null)
+  const [customStatusText, setCustomStatusText] = useState('')
   const [draftIcons, setDraftIcons] = useState<PlayerRecordActionId[]>([])
 
   const eventsByPhase = useMemo(() => {
@@ -292,6 +301,8 @@ export function EventLogPanel({
     setPendingNominateOptionId(null)
     setPendingNominateTargetId(null)
     setNominateVoteCount('0')
+    setPendingStatusOptionId(null)
+    setCustomStatusText('')
     setDraftIcons([])
   }
 
@@ -367,6 +378,12 @@ export function EventLogPanel({
     )
   }
 
+  function markStatusAnomalyIcon() {
+    setDraftIcons((prev) =>
+      prev.includes('poison-drunk') ? prev : [...prev, 'poison-drunk'],
+    )
+  }
+
   function finishNominateSnippet(snippet: string) {
     insertIntoDraft(snippet)
     markNominateIcon()
@@ -375,6 +392,15 @@ export function EventLogPanel({
     setPendingNominateOptionId(null)
     setPendingNominateTargetId(null)
     setNominateVoteCount('0')
+  }
+
+  function finishStatusAnomalySnippet(snippet: string) {
+    insertIntoDraft(snippet)
+    markStatusAnomalyIcon()
+    setRecordPicker('root')
+    setPendingPlayerId(null)
+    setPendingStatusOptionId(null)
+    setCustomStatusText('')
   }
 
   function pickPlayerAction(opt: PlayerRecordAction) {
@@ -396,6 +422,12 @@ export function EventLogPanel({
       setRecordPicker('nominate-execute')
       return
     }
+    if (opt.id === 'poison-drunk') {
+      setPendingStatusOptionId(null)
+      setCustomStatusText('')
+      setRecordPicker('status-anomaly')
+      return
+    }
     if (opt.id === 'custom') {
       insertIntoDraft(who)
       setDraftIcons((prev) =>
@@ -411,6 +443,48 @@ export function EventLogPanel({
     )
     setRecordPicker('root')
     setPendingPlayerId(null)
+  }
+
+  function pickStatusAnomalyOption(opt: StatusAnomalyOption) {
+    const actor = pendingPlayerId
+      ? match.players.find((p) => p.id === pendingPlayerId)
+      : undefined
+    if (!actor) {
+      setRecordPicker('root')
+      setPendingPlayerId(null)
+      return
+    }
+    if (opt.needsCustomText) {
+      setPendingStatusOptionId(opt.id)
+      setCustomStatusText('')
+      setRecordPicker('status-anomaly-custom')
+      return
+    }
+    finishStatusAnomalySnippet(
+      composeStatusAnomalySnippet({
+        actorName: playerMentionToken(actor.id),
+        optionId: opt.id,
+      }),
+    )
+  }
+
+  function confirmCustomStatus() {
+    const actor = pendingPlayerId
+      ? match.players.find((p) => p.id === pendingPlayerId)
+      : undefined
+    if (!actor || !pendingStatusOptionId) {
+      setRecordPicker('status-anomaly')
+      return
+    }
+    const custom = customStatusText.trim()
+    if (!custom) return
+    finishStatusAnomalySnippet(
+      composeStatusAnomalySnippet({
+        actorName: playerMentionToken(actor.id),
+        optionId: pendingStatusOptionId,
+        customText: custom,
+      }),
+    )
   }
 
   function pickNominateExecuteOption(opt: NominateExecuteOption) {
@@ -834,9 +908,14 @@ export function EventLogPanel({
                         ? `${playerLogLabel(match, pendingPlayer)}提名谁？ — 点选被提名玩家`
                         : recordPicker === 'nominate-votes'
                           ? '填写本次提名票数后确认写入'
-                          : recordPicker === 'player' && pendingPlayer
-                            ? `${playerLogLabel(match, pendingPlayer)}待选择 — 点一项写入记录（含图标）`
-                            : '点选上方圆桌座位，为该玩家选择动作'}
+                          : recordPicker === 'status-anomaly' && pendingPlayer
+                            ? `${playerLogLabel(match, pendingPlayer)} · 状态异常 — 点一项继续`
+                            : recordPicker === 'status-anomaly-custom' &&
+                                pendingPlayer
+                              ? `${playerLogLabel(match, pendingPlayer)} · 填写自定义状态后确认写入`
+                              : recordPicker === 'player' && pendingPlayer
+                                ? `${playerLogLabel(match, pendingPlayer)}待选择 — 点一项写入记录（含图标）`
+                                : '点选上方圆桌座位，为该玩家选择动作'}
                 </p>
 
                 {recordPicker === 'storyteller' ? (
@@ -976,6 +1055,81 @@ export function EventLogPanel({
                       className="mt-2 min-h-11 w-full rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--ink-muted)] touch-manipulation"
                     >
                       返回玩家列表
+                    </button>
+                  </div>
+                ) : recordPicker === 'status-anomaly' ? (
+                  <div className="overflow-hidden rounded-md border border-[var(--line)]">
+                    {STATUS_ANOMALY_OPTIONS.map((opt, i) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => pickStatusAnomalyOption(opt)}
+                        className={`flex min-h-12 w-full items-center px-3 py-2.5 text-left text-sm text-[var(--ink)] touch-manipulation ${
+                          i > 0 ? 'border-t border-[var(--line)]' : ''
+                        } ${
+                          opt.needsCustomText
+                            ? 'bg-[var(--bg-elevated)] text-[var(--accent-soft)]'
+                            : 'bg-[var(--bg-deep)]/40'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPendingStatusOptionId(null)
+                        setCustomStatusText('')
+                        setRecordPicker('player')
+                      }}
+                      className="flex min-h-11 w-full items-center justify-center border-t border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--ink-muted)] touch-manipulation"
+                    >
+                      返回动作选择
+                    </button>
+                  </div>
+                ) : recordPicker === 'status-anomaly-custom' ? (
+                  <div className="rounded-md border border-[var(--line)] bg-[var(--bg-deep)]/40 p-3">
+                    <p className="mb-2 text-sm text-[var(--ink)]">
+                      {pendingPlayer
+                        ? playerLogLabel(match, pendingPlayer)
+                        : '玩家'}
+                      …
+                    </p>
+                    <label className="block text-xs text-[var(--ink-muted)]">
+                      自定义状态
+                      <input
+                        type="text"
+                        autoFocus
+                        className="mt-1 min-h-11 w-full rounded-md border border-[var(--line)] bg-[var(--bg-panel)] px-2 py-2 text-base text-[var(--ink)] sm:text-sm"
+                        placeholder="例如：被迷住了"
+                        value={customStatusText}
+                        onChange={(e) => setCustomStatusText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            confirmCustomStatus()
+                          }
+                        }}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      disabled={!customStatusText.trim()}
+                      onClick={confirmCustomStatus}
+                      className="mt-3 min-h-11 w-full rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white touch-manipulation disabled:opacity-50"
+                    >
+                      确认写入状态
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomStatusText('')
+                        setPendingStatusOptionId(null)
+                        setRecordPicker('status-anomaly')
+                      }}
+                      className="mt-2 min-h-11 w-full rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--ink-muted)] touch-manipulation"
+                    >
+                      返回状态异常
                     </button>
                   </div>
                 ) : recordPicker === 'player' ? (
