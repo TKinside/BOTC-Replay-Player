@@ -3,6 +3,7 @@ import type { RoleDef } from '@/domain'
 import type { Player } from '@/domain'
 import {
   activeMentionAt,
+  canBareMatchPlayerName,
   composeCustomTextLog,
   expandLogTextPlain,
   filterRolesForMention,
@@ -207,5 +208,44 @@ describe('compose with player tokens', () => {
     ).toBe(
       `${playerMentionToken('player-a')}选择${playerMentionToken('player-b')}`,
     )
+  })
+})
+
+describe('canBareMatchPlayerName', () => {
+  it('rejects numeric-only nicknames that would collide in free text', () => {
+    expect(canBareMatchPlayerName('1')).toBe(false)
+    expect(canBareMatchPlayerName('222')).toBe(false)
+    expect(canBareMatchPlayerName('爱丽丝')).toBe(true)
+  })
+})
+
+describe('parseLogText numeric nicknames', () => {
+  it('still resolves @# tokens for digit nicknames', () => {
+    const digitPlayers: Player[] = [
+      { id: 'p-1', seatIndex: 0, name: '1', roleId: 'washerwoman' },
+      { id: 'p-222', seatIndex: 1, name: '222', roleId: 'widow' },
+    ]
+    const text = `${playerMentionToken('p-1')}提名了${playerMentionToken('p-222')}（5票）`
+    const segs = parseLogText(text, { roles, players: digitPlayers })
+    expect(segs.map((s) => s.kind)).toEqual([
+      'player',
+      'text',
+      'player',
+      'text',
+    ])
+    expect(expandLogTextPlain(text, { roles, players: digitPlayers })).toBe(
+      '1(洗衣妇)提名了222(寡妇)（5票）',
+    )
+  })
+
+  it('does not bare-match digit nicknames inside vote counts', () => {
+    const digitPlayers: Player[] = [
+      { id: 'p-1', seatIndex: 0, name: '1', roleId: 'washerwoman' },
+    ]
+    const segs = parseLogText('提名了某人（5票）', {
+      roles,
+      players: digitPlayers,
+    })
+    expect(segs).toEqual([{ kind: 'text', value: '提名了某人（5票）' }])
   })
 })

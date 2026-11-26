@@ -149,19 +149,32 @@ export function parseLogText(
   return mergeAdjacentText(withNames)
 }
 
+/** Skip bare-name matching for nicknames that collide with digits/short ASCII. */
+export function canBareMatchPlayerName(name: string): boolean {
+  const n = name.trim()
+  if (!n) return false
+  // "1" / "222" would match inside「（5票）」or other numbers — require tokens.
+  if (/^\d+$/.test(n)) return false
+  if (/^[A-Za-z0-9._-]+$/.test(n) && n.length <= 2) return false
+  return true
+}
+
 function splitBarePlayerNames(
   text: string,
   playersByNameLen: readonly Player[],
   roleById: Map<string, RoleDef>,
 ): LogTextSegment[] {
-  if (!text || playersByNameLen.length === 0) {
+  const matchable = playersByNameLen.filter((p) =>
+    canBareMatchPlayerName(p.name),
+  )
+  if (!text || matchable.length === 0) {
     return text ? [{ kind: 'text', value: text }] : []
   }
   const out: LogTextSegment[] = []
   let i = 0
   while (i < text.length) {
     const rest = text.slice(i)
-    const hit = playersByNameLen.find((p) => rest.startsWith(p.name))
+    const hit = matchable.find((p) => rest.startsWith(p.name))
     if (hit) {
       const role = hit.roleId ? roleById.get(hit.roleId) : undefined
       out.push({
@@ -175,7 +188,7 @@ function splitBarePlayerNames(
     }
     // Advance to next possible name start (any char); cheap scan.
     let next = text.length
-    for (const p of playersByNameLen) {
+    for (const p of matchable) {
       const at = text.indexOf(p.name, i + 1)
       if (at !== -1 && at < next) next = at
     }

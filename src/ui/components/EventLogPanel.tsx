@@ -14,12 +14,12 @@ import {
   playerMentionToken,
 } from '@/lib/customTextCompose'
 import {
-  allPlayerNames,
+  allPlayerRefs,
   buildFieldStatsReport,
-  evilCampNames,
-  goodCampNames,
-  minionNames,
-  townsfolkNames,
+  evilCampRefs,
+  goodCampRefs,
+  minionRefs,
+  townsfolkRefs,
 } from '../lib/fieldStatsReport'
 import {
   composeNominateExecuteSnippet,
@@ -157,26 +157,24 @@ function resolveQuickSnippet(
 ): string {
   switch (id) {
     case 'all-players': {
-      const names = allPlayerNames(match)
-      return names.length > 0 ? `全体玩家（${names.join('、')}）` : '全体玩家'
+      const refs = allPlayerRefs(match)
+      return refs.length > 0 ? `全体玩家（${refs.join('、')}）` : '全体玩家'
     }
     case 'townsfolk': {
-      const names = townsfolkNames(match)
-      return names.length > 0 ? `镇民们（${names.join('、')}）` : '镇民们'
+      const refs = townsfolkRefs(match)
+      return refs.length > 0 ? `镇民们（${refs.join('、')}）` : '镇民们'
     }
     case 'minions': {
-      const names = minionNames(match)
-      return names.length > 0
-        ? `爪牙们（${names.join('、')}）`
-        : '爪牙们'
+      const refs = minionRefs(match)
+      return refs.length > 0 ? `爪牙们（${refs.join('、')}）` : '爪牙们'
     }
     case 'good': {
-      const names = goodCampNames(match)
-      return names.length > 0 ? `善良阵营（${names.join('、')}）` : '善良阵营'
+      const refs = goodCampRefs(match)
+      return refs.length > 0 ? `善良阵营（${refs.join('、')}）` : '善良阵营'
     }
     case 'evil': {
-      const names = evilCampNames(match)
-      return names.length > 0 ? `邪恶阵营（${names.join('、')}）` : '邪恶阵营'
+      const refs = evilCampRefs(match)
+      return refs.length > 0 ? `邪恶阵营（${refs.join('、')}）` : '邪恶阵营'
     }
   }
 }
@@ -388,9 +386,9 @@ export function EventLogPanel({
       setPendingPlayerId(null)
       return
     }
-    // Insert the nickname into the editable draft; log rendering matches bare
-    // names to role icon + name(role). Custom-text actor/targets still use @# tokens.
-    const who = player.name
+    // Prefer @#playerId so draft/log preview can render icon + name(role)
+    // even when nicknames are short digits like「1」/「222」.
+    const who = playerMentionToken(player.id)
     if (opt.id === 'nominate-execute') {
       setPendingNominateOptionId(null)
       setPendingNominateTargetId(null)
@@ -433,7 +431,7 @@ export function EventLogPanel({
     }
     finishNominateSnippet(
       composeNominateExecuteSnippet({
-        actorName: actor.name,
+        actorName: playerMentionToken(actor.id),
         optionId: opt.id,
       }),
     )
@@ -458,9 +456,9 @@ export function EventLogPanel({
     }
     finishNominateSnippet(
       composeNominateExecuteSnippet({
-        actorName: actor.name,
+        actorName: playerMentionToken(actor.id),
         optionId: pendingNominateOptionId,
-        targetName: target.name,
+        targetName: playerMentionToken(target.id),
       }),
     )
   }
@@ -479,9 +477,9 @@ export function EventLogPanel({
     const votes = Number.parseInt(nominateVoteCount, 10)
     finishNominateSnippet(
       composeNominateExecuteSnippet({
-        actorName: actor.name,
+        actorName: playerMentionToken(actor.id),
         optionId: pendingNominateOptionId,
-        targetName: target.name,
+        targetName: playerMentionToken(target.id),
         votes: Number.isFinite(votes) ? votes : 0,
       }),
     )
@@ -772,35 +770,51 @@ export function EventLogPanel({
 
             {composer.mode === 'record' ? (
               <>
-                <label className="block text-xs text-[var(--ink-muted)]">
+                <div className="block text-xs text-[var(--ink-muted)]">
                   记录内容
-                  <textarea
-                    className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-2 py-2 text-base text-[var(--ink)] sm:text-sm"
-                    rows={3}
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder="待选择。"
-                  />
-                </label>
-                {draftIcons.length > 0 && (
                   <div
-                    className="mt-2 flex flex-wrap items-center gap-1.5"
-                    aria-label="已选图标"
+                    className="mt-1 min-h-[4.5rem] w-full rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-2 py-2 text-base leading-snug text-[var(--ink)] sm:text-sm"
+                    aria-live="polite"
                   >
-                    {draftIcons.map((iconId) => (
-                      <span
-                        key={iconId}
-                        className="inline-flex items-center gap-1 rounded border border-[var(--line)] bg-[var(--bg-elevated)] px-1.5 py-1 text-[var(--ink)]"
-                        title={
-                          PLAYER_RECORD_ACTIONS.find((a) => a.id === iconId)
-                            ?.label ?? iconId
-                        }
-                      >
-                        <PlayerActionIcon id={iconId} />
+                    {text.trim() ? (
+                      <span className="inline-flex flex-wrap items-center gap-1">
+                        {draftIcons.map((iconId) => (
+                          <PlayerActionIcon
+                            key={iconId}
+                            id={iconId}
+                            className="size-3.5 text-[var(--accent-soft)]"
+                          />
+                        ))}
+                        <EventLogText
+                          text={
+                            endWithPeriod &&
+                            text.trim() &&
+                            !/[。.!！？?]$/.test(text.trim())
+                              ? `${text.trim()}。`
+                              : text
+                          }
+                          roles={match.script.roles}
+                          players={match.players}
+                        />
                       </span>
-                    ))}
+                    ) : (
+                      <span className="text-[var(--ink-muted)]">待选择。</span>
+                    )}
                   </div>
-                )}
+                  <details className="mt-1">
+                    <summary className="cursor-pointer select-none text-[11px] text-[var(--ink-muted)] touch-manipulation">
+                      编辑原文
+                    </summary>
+                    <textarea
+                      className="mt-1 w-full rounded-md border border-[var(--line)] bg-[var(--bg-deep)] px-2 py-2 text-base text-[var(--ink)] sm:text-sm"
+                      rows={3}
+                      value={text}
+                      onChange={(e) => setText(e.target.value)}
+                      placeholder="待选择。"
+                      aria-label="记录原文"
+                    />
+                  </details>
+                </div>
                 <label className="mt-2 flex items-center gap-2 text-xs text-[var(--ink-muted)]">
                   <input
                     type="checkbox"
