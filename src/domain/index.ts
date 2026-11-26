@@ -21,7 +21,10 @@ export {
   applyStatusPatches,
   appendEvent,
   removeEvent,
+  moveEvent,
+  canMoveEvent,
   touchMatch,
+  type MoveEventDirection,
   type PlayerStatusView,
   type RichMatchView,
 } from './reduce'

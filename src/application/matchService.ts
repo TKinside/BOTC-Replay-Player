@@ -4,8 +4,10 @@ import {
   advancePhase as domainAdvancePhase,
   appendEvent,
   assignRole as domainAssignRole,
+  moveEvent as domainMoveEvent,
   removeEvent as domainRemoveEvent,
   removePhase as domainRemovePhase,
+  type MoveEventDirection,
   removePlayer as domainRemovePlayer,
   setScript,
   touchMatch,
@@ -130,6 +132,16 @@ export class MatchService {
 
   async removeEvent(match: Match, eventId: string): Promise<Match> {
     return this.save(domainRemoveEvent(match, eventId))
+  }
+
+  async moveEvent(
+    match: Match,
+    eventId: string,
+    direction: MoveEventDirection,
+  ): Promise<Match> {
+    const next = domainMoveEvent(match, eventId, direction)
+    if (next === match) return match
+    return this.save(next)
   }
 
   async recordEvent(

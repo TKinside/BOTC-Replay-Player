@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   appendEvent,
+  canMoveEvent,
+  moveEvent,
   reduceMatch,
   reducePlayerStatuses,
   removeEvent,
@@ -85,6 +87,68 @@ describe('domain/reduceMatch', () => {
     const next = removeEvent(match, 'evt-1')
     expect(next.events).toHaveLength(0)
     expect(reduceMatch(next).eventCount).toBe(0)
+  })
+
+  it('moveEvent reorders within a phase and crosses into adjacent phases', () => {
+    let match = emptyMatch()
+    match = {
+      ...match,
+      phases: [
+        { id: 'setup', kind: 'setup', index: 0, label: '准备阶段' },
+        { id: 'night-1', kind: 'night', index: 1, label: '第 1 夜' },
+        { id: 'day-1', kind: 'day', index: 1, label: '第 1 天' },
+      ],
+      events: [
+        {
+          id: 'e1',
+          typeId: 'custom',
+          phaseId: 'night-1',
+          at: '2026-01-01T01:00:00.000Z',
+          payload: {},
+          text: '夜甲',
+        },
+        {
+          id: 'e2',
+          typeId: 'custom',
+          phaseId: 'night-1',
+          at: '2026-01-01T01:01:00.000Z',
+          payload: {},
+          text: '夜乙',
+        },
+        {
+          id: 'e3',
+          typeId: 'custom',
+          phaseId: 'day-1',
+          at: '2026-01-01T02:00:00.000Z',
+          payload: {},
+          text: '昼甲',
+        },
+      ],
+    }
+
+    expect(moveEvent(match, 'missing', 'up')).toBe(match)
+    expect(canMoveEvent(match, 'e1', 'up')).toBe(true)
+    expect(canMoveEvent(match, 'e3', 'down')).toBe(false)
+
+    match = moveEvent(match, 'e2', 'up')
+    expect(match.events.map((e) => e.id)).toEqual(['e2', 'e1', 'e3'])
+    expect(match.events.every((e) => e.id !== 'e2' || e.phaseId === 'night-1')).toBe(
+      true,
+    )
+
+    match = moveEvent(match, 'e2', 'up')
+    expect(match.events.find((e) => e.id === 'e2')?.phaseId).toBe('setup')
+    expect(
+      match.events.filter((e) => e.phaseId === 'setup').map((e) => e.id),
+    ).toEqual(['e2'])
+    expect(canMoveEvent(match, 'e2', 'up')).toBe(false)
+    expect(moveEvent(match, 'e2', 'up')).toBe(match)
+
+    match = moveEvent(match, 'e1', 'down')
+    expect(match.events.find((e) => e.id === 'e1')?.phaseId).toBe('day-1')
+    expect(
+      match.events.filter((e) => e.phaseId === 'day-1').map((e) => e.id),
+    ).toEqual(['e1', 'e3'])
   })
 
   it('reducePlayerStatuses applies poison/death patches', () => {
