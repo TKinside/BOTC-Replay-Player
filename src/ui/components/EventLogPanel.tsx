@@ -22,9 +22,13 @@ import {
   townsfolkNames,
 } from '../lib/fieldStatsReport'
 import {
+  composeNominateExecuteSnippet,
   isPlayerRecordActionId,
+  NOMINATE_EXECUTE_OPTIONS,
   PLAYER_RECORD_ACTIONS,
   PlayerActionIcon,
+  type NominateExecuteOption,
+  type NominateExecuteOptionId,
   type PlayerRecordAction,
   type PlayerRecordActionId,
 } from '../lib/playerRecordActions'
@@ -85,7 +89,13 @@ const STORYTELLER_OPTIONS: { id: string; label: string }[] = [
   { id: 'custom', label: '自定义' },
 ]
 
-type RecordPicker = 'root' | 'storyteller' | 'player'
+type RecordPicker =
+  | 'root'
+  | 'storyteller'
+  | 'player'
+  | 'nominate-execute'
+  | 'nominate-target'
+  | 'nominate-votes'
 
 function playerLogLabel(match: Match, player: Player): string {
   const role = match.script.roles.find((r) => r.id === player.roleId)
@@ -200,6 +210,12 @@ export function EventLogPanel({
   const [endWithPeriod, setEndWithPeriod] = useState(true)
   const [recordPicker, setRecordPicker] = useState<RecordPicker>('root')
   const [pendingPlayerId, setPendingPlayerId] = useState<string | null>(null)
+  const [pendingNominateOptionId, setPendingNominateOptionId] =
+    useState<NominateExecuteOptionId | null>(null)
+  const [pendingNominateTargetId, setPendingNominateTargetId] = useState<
+    string | null
+  >(null)
+  const [nominateVoteCount, setNominateVoteCount] = useState('0')
   const [draftIcons, setDraftIcons] = useState<PlayerRecordActionId[]>([])
 
   const eventsByPhase = useMemo(() => {
@@ -275,6 +291,9 @@ export function EventLogPanel({
     setEndWithPeriod(true)
     setRecordPicker('root')
     setPendingPlayerId(null)
+    setPendingNominateOptionId(null)
+    setPendingNominateTargetId(null)
+    setNominateVoteCount('0')
     setDraftIcons([])
   }
 
@@ -344,6 +363,22 @@ export function EventLogPanel({
     setRecordPicker('root')
   }
 
+  function markNominateIcon() {
+    setDraftIcons((prev) =>
+      prev.includes('nominate-execute') ? prev : [...prev, 'nominate-execute'],
+    )
+  }
+
+  function finishNominateSnippet(snippet: string) {
+    insertIntoDraft(snippet)
+    markNominateIcon()
+    setRecordPicker('root')
+    setPendingPlayerId(null)
+    setPendingNominateOptionId(null)
+    setPendingNominateTargetId(null)
+    setNominateVoteCount('0')
+  }
+
   function pickPlayerAction(opt: PlayerRecordAction) {
     const player = pendingPlayerId
       ? match.players.find((p) => p.id === pendingPlayerId)
@@ -356,6 +391,13 @@ export function EventLogPanel({
     // Insert the nickname into the editable draft; log rendering matches bare
     // names to role icon + name(role). Custom-text actor/targets still use @# tokens.
     const who = player.name
+    if (opt.id === 'nominate-execute') {
+      setPendingNominateOptionId(null)
+      setPendingNominateTargetId(null)
+      setNominateVoteCount('0')
+      setRecordPicker('nominate-execute')
+      return
+    }
     if (opt.id === 'custom') {
       insertIntoDraft(who)
       setDraftIcons((prev) =>
@@ -371,6 +413,78 @@ export function EventLogPanel({
     )
     setRecordPicker('root')
     setPendingPlayerId(null)
+  }
+
+  function pickNominateExecuteOption(opt: NominateExecuteOption) {
+    const actor = pendingPlayerId
+      ? match.players.find((p) => p.id === pendingPlayerId)
+      : undefined
+    if (!actor) {
+      setRecordPicker('root')
+      setPendingPlayerId(null)
+      return
+    }
+    if (opt.needsTargetPlayer) {
+      setPendingNominateOptionId(opt.id)
+      setPendingNominateTargetId(null)
+      setNominateVoteCount('0')
+      setRecordPicker('nominate-target')
+      return
+    }
+    finishNominateSnippet(
+      composeNominateExecuteSnippet({
+        actorName: actor.name,
+        optionId: opt.id,
+      }),
+    )
+  }
+
+  function pickNominateTarget(target: Player) {
+    const actor = pendingPlayerId
+      ? match.players.find((p) => p.id === pendingPlayerId)
+      : undefined
+    const opt = pendingNominateOptionId
+      ? NOMINATE_EXECUTE_OPTIONS.find((o) => o.id === pendingNominateOptionId)
+      : undefined
+    if (!actor || !opt || !pendingNominateOptionId) {
+      setRecordPicker('nominate-execute')
+      return
+    }
+    if (opt.needsVoteCount) {
+      setPendingNominateTargetId(target.id)
+      setNominateVoteCount('0')
+      setRecordPicker('nominate-votes')
+      return
+    }
+    finishNominateSnippet(
+      composeNominateExecuteSnippet({
+        actorName: actor.name,
+        optionId: pendingNominateOptionId,
+        targetName: target.name,
+      }),
+    )
+  }
+
+  function confirmNominateVotes() {
+    const actor = pendingPlayerId
+      ? match.players.find((p) => p.id === pendingPlayerId)
+      : undefined
+    const target = pendingNominateTargetId
+      ? match.players.find((p) => p.id === pendingNominateTargetId)
+      : undefined
+    if (!actor || !target || !pendingNominateOptionId) {
+      setRecordPicker('nominate-target')
+      return
+    }
+    const votes = Number.parseInt(nominateVoteCount, 10)
+    finishNominateSnippet(
+      composeNominateExecuteSnippet({
+        actorName: actor.name,
+        optionId: pendingNominateOptionId,
+        targetName: target.name,
+        votes: Number.isFinite(votes) ? votes : 0,
+      }),
+    )
   }
 
   function submitComposer() {
@@ -700,9 +814,15 @@ export function EventLogPanel({
                 <p className="mt-3 mb-2 text-xs text-[var(--ink-muted)]">
                   {recordPicker === 'storyteller'
                     ? '说书人待选择 — 点一项继续，或返回改选其他对象'
-                    : recordPicker === 'player' && pendingPlayer
-                      ? `${playerLogLabel(match, pendingPlayer)}待选择 — 点一项写入记录（含图标）`
-                      : '点选上方圆桌座位，为该玩家选择动作'}
+                    : recordPicker === 'nominate-execute' && pendingPlayer
+                      ? `${playerLogLabel(match, pendingPlayer)} · 提名/处决 — 点一项继续`
+                      : recordPicker === 'nominate-target' && pendingPlayer
+                        ? `${playerLogLabel(match, pendingPlayer)}提名谁？ — 点选被提名玩家`
+                        : recordPicker === 'nominate-votes'
+                          ? '填写本次提名票数后确认写入'
+                          : recordPicker === 'player' && pendingPlayer
+                            ? `${playerLogLabel(match, pendingPlayer)}待选择 — 点一项写入记录（含图标）`
+                            : '点选上方圆桌座位，为该玩家选择动作'}
                 </p>
 
                 {recordPicker === 'storyteller' ? (
@@ -729,6 +849,119 @@ export function EventLogPanel({
                       className="flex min-h-11 w-full items-center justify-center border-t border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--ink-muted)] touch-manipulation"
                     >
                       返回对象选择
+                    </button>
+                  </div>
+                ) : recordPicker === 'nominate-execute' ? (
+                  <div className="overflow-hidden rounded-md border border-[var(--line)]">
+                    {NOMINATE_EXECUTE_OPTIONS.map((opt, i) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => pickNominateExecuteOption(opt)}
+                        className={`flex min-h-12 w-full items-center px-3 py-2.5 text-left text-sm text-[var(--ink)] touch-manipulation ${
+                          i > 0 ? 'border-t border-[var(--line)]' : ''
+                        } bg-[var(--bg-deep)]/40`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPendingNominateOptionId(null)
+                        setRecordPicker('player')
+                      }}
+                      className="flex min-h-11 w-full items-center justify-center border-t border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--ink-muted)] touch-manipulation"
+                    >
+                      返回动作选择
+                    </button>
+                  </div>
+                ) : recordPicker === 'nominate-target' ? (
+                  <div className="overflow-hidden rounded-md border border-[var(--line)]">
+                    {sortedPlayers.map((p, i) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => pickNominateTarget(p)}
+                        className={`flex min-h-12 w-full items-center px-3 py-2.5 text-left text-sm text-[var(--ink)] touch-manipulation ${
+                          i > 0 ? 'border-t border-[var(--line)]' : ''
+                        } bg-[var(--bg-deep)]/40`}
+                      >
+                        {playerOptionLabel(match, p)}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPendingNominateTargetId(null)
+                        setRecordPicker('nominate-execute')
+                      }}
+                      className="flex min-h-11 w-full items-center justify-center border-t border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--ink-muted)] touch-manipulation"
+                    >
+                      返回提名/处决
+                    </button>
+                  </div>
+                ) : recordPicker === 'nominate-votes' ? (
+                  <div className="rounded-md border border-[var(--line)] bg-[var(--bg-deep)]/40 p-3">
+                    <p className="mb-2 text-sm text-[var(--ink)]">
+                      {pendingPlayer
+                        ? playerLogLabel(match, pendingPlayer)
+                        : '行动者'}
+                      提名了
+                      {pendingNominateTargetId
+                        ? (() => {
+                            const t = match.players.find(
+                              (p) => p.id === pendingNominateTargetId,
+                            )
+                            return t
+                              ? playerLogLabel(match, t)
+                              : '玩家'
+                          })()
+                        : '玩家'}
+                    </p>
+                    <label className="block text-xs text-[var(--ink-muted)]">
+                      票数
+                      <input
+                        type="number"
+                        min={0}
+                        inputMode="numeric"
+                        className="mt-1 min-h-11 w-full rounded-md border border-[var(--line)] bg-[var(--bg-panel)] px-2 py-2 text-base text-[var(--ink)] sm:text-sm"
+                        value={nominateVoteCount}
+                        onChange={(e) => setNominateVoteCount(e.target.value)}
+                      />
+                    </label>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setNominateVoteCount(String(n))}
+                          className={`min-h-9 min-w-9 rounded-md border px-2 text-sm touch-manipulation ${
+                            nominateVoteCount === String(n)
+                              ? 'border-[var(--accent-soft)] bg-[var(--bg-elevated)] text-[var(--accent-soft)]'
+                              : 'border-[var(--line)] bg-[var(--bg-elevated)] text-[var(--ink)]'
+                          }`}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={confirmNominateVotes}
+                      className="mt-3 min-h-11 w-full rounded-md bg-[var(--accent)] px-3 py-2 text-sm font-medium text-white touch-manipulation"
+                    >
+                      确认写入提名
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNominateVoteCount('0')
+                        setRecordPicker('nominate-target')
+                      }}
+                      className="mt-2 min-h-11 w-full rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--ink-muted)] touch-manipulation"
+                    >
+                      返回玩家列表
                     </button>
                   </div>
                 ) : recordPicker === 'player' ? (

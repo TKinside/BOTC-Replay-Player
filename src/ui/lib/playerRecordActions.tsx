@@ -124,3 +124,79 @@ export function isPlayerRecordActionId(
     PLAYER_RECORD_ACTIONS.some((a) => a.id === value)
   )
 }
+
+/** Sub-options after tapping「提名/处决」(mini-program post-menu). */
+export type NominateExecuteOptionId =
+  | 'nominate-player-with-votes'
+  | 'nominate-player-no-votes'
+  | 'nominate-storyteller'
+  | 'voted'
+  | 'executed-simple'
+
+export type NominateExecuteOption = {
+  id: NominateExecuteOptionId
+  label: string
+  /** Pick a second player (the nominee). */
+  needsTargetPlayer: boolean
+  /** After the nominee, collect a vote count. */
+  needsVoteCount?: boolean
+}
+
+/**
+ * Central list for the 提名/处决 post-menu — add rows here, not in the modal.
+ * Visible options match the WeChat mini-program reference screenshots.
+ */
+export const NOMINATE_EXECUTE_OPTIONS: NominateExecuteOption[] = [
+  {
+    id: 'nominate-player-with-votes',
+    label: '提名玩家(记录票数)',
+    needsTargetPlayer: true,
+    needsVoteCount: true,
+  },
+  {
+    id: 'nominate-player-no-votes',
+    label: '提名玩家(不记录票数)',
+    needsTargetPlayer: true,
+  },
+  {
+    id: 'nominate-storyteller',
+    label: '提名说书人(仅用于无神论者在场)',
+    needsTargetPlayer: false,
+  },
+  { id: 'voted', label: '投了票', needsTargetPlayer: false },
+  {
+    id: 'executed-simple',
+    label: '被处决(简单记录)',
+    needsTargetPlayer: false,
+  },
+]
+
+/** Build the draft snippet for a 提名/处决 sub-option. */
+export function composeNominateExecuteSnippet(input: {
+  actorName: string
+  optionId: NominateExecuteOptionId
+  targetName?: string
+  votes?: number
+}): string {
+  const actor = input.actorName.trim()
+  switch (input.optionId) {
+    case 'nominate-player-with-votes': {
+      const target = input.targetName?.trim() || '?'
+      const votes =
+        typeof input.votes === 'number' && Number.isFinite(input.votes)
+          ? Math.max(0, Math.floor(input.votes))
+          : 0
+      return `${actor}提名了${target}（${votes}票）`
+    }
+    case 'nominate-player-no-votes': {
+      const target = input.targetName?.trim() || '?'
+      return `${actor}提名了${target}`
+    }
+    case 'nominate-storyteller':
+      return `${actor}提名了说书人`
+    case 'voted':
+      return `${actor}投了票`
+    case 'executed-simple':
+      return `${actor}被处决`
+  }
+}
